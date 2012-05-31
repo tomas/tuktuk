@@ -107,7 +107,7 @@ module Tuktuk
       smtp.enable_starttls_auto(context)
       smtp.start(domain, nil, nil, nil) do |smtp|
         result = smtp.send_message(raw_mail, from, to)
-        logger.info res.string
+        logger.info result.string
       end
 
       success(to)
