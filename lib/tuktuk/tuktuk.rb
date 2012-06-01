@@ -6,25 +6,31 @@ require 'tuktuk/package'
 
 DEFAULTS = {
   :retry_sleep =>  10,
-  :max_attempts => 3
+  :max_attempts => 3,
+  :mailer => "Tuktuk SMTP #{VERSION}"
 }
 
 module Tuktuk
 
-  class DNSError < RuntimeError; end
-  class MissingFieldsError < ArgumentError; end
-
   class << self
 
     def deliver(message, opts = {})
-      config.merge(opts)
+      options = opts
       mail = Package.new(message)
       mail['X-Mailer'] = opts[:smtp_server_name] || "Tuktuk SMTP #{VERSION}"
-      response = lookup_and_deliver(mail)
-      return response, mail
+      lookup_and_deliver(mail)
+      mail
+    end
+
+    def options=(hash)
+      if dkim_opts = hash.delete(:dkim)
+        self.dkim = dkim_opts
+      end
+      config.merge!(hash)
     end
 
     def dkim=(dkim_opts)
+      # logger.info "Enabling DKIM for domain #{dkim_opts[:domain]}..."
       Dkim::domain = dkim_opts[:domain]
       Dkim::selector = dkim_opts[:selector]
       Dkim::private_key = dkim_opts[:private_key]
@@ -45,20 +51,20 @@ module Tuktuk
     end
 
     def get_domain(email_address)
-      email_address.to_s[/@([a-z0-9\._-]+)/i, 1]
+      email_address && email_address.to_s[/@([a-z0-9\._-]+)/i, 1]
     end
 
     def success(destination)
       logger.info("#{destination} - Successfully sent mail!")
     end
 
-    def error(mail, destination, error, attempt = 1)
+    def error(mail, to, error, attempt = 1)
       if attempt <= config[:max_attempts] && (error.is_a?(Net::SMTPServerBusy) or error.is_a?(EOFError))
-        logger.info "#{destination} - Got #{error.class.name} error. Retrying after #{config[:retry_sleep]} secs..."
+        logger.info "#{to} - Got #{error.class.name} error. Retrying after #{config[:retry_sleep]} secs..."
         sleep config[:retry_sleep]
         lookup_and_deliver(mail, attempt+1)
       else
-        logger.error("#{destination} - Unable to send after #{attempt} attempts: #{error_message} [#{error.class.name}]")
+        logger.error("#{to} - Unable to send after #{attempt} attempts: #{error_message} [#{error.class.name}]")
         raise error
       end
     end
@@ -105,17 +111,16 @@ module Tuktuk
       context = OpenSSL::SSL::SSLContext.new
       context.verify_mode = OpenSSL::SSL::VERIFY_NONE # OpenSSL::SSL::VERIFY_PEER
 
-      domain = config[:domain] || get_domain(to)
+      helo_domain = Dkim::domain || config[:helo_domain] || get_domain(mail[:from])
 
       smtp = Net::SMTP.new(server, nil)
       smtp.enable_starttls_auto(context)
-      smtp.start(domain, nil, nil, nil) do |smtp|
+      smtp.start(helo_domain, nil, nil, nil) do |smtp|
         response = smtp.send_message(raw_mail, from, to)
-        logger.info response.message
+        logger.info "#{to} - #{response.message.strip}"
       end
 
       success(to)
-      response
     end
 
   end
