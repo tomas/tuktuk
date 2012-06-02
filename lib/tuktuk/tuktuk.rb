@@ -19,7 +19,7 @@ module Tuktuk
   class << self
 
     def deliver(message, opts = {})
-      self.options = opts
+      self.options = opts if opts.any?
       mail = Package.new(message)
       mail['X-Mailer'] = "Tuktuk SMTP v#{VERSION}"
       response = lookup_and_deliver(mail)
