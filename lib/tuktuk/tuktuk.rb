@@ -13,6 +13,9 @@ DEFAULTS = {
 
 module Tuktuk
 
+  class DNSError < RuntimeError; end
+  class MissingFieldsError < ArgumentError; end
+
   class << self
 
     def deliver(message, opts = {})
@@ -105,18 +108,17 @@ module Tuktuk
     def send_now(mail, server, to)
       logger.info "#{to} - Delivering email at #{server}..."
 
-      response = nil
       raw_mail = use_dkim? ? Dkim.sign(mail.to_s).to_s : mail.to_s
       from = mail.return_path || mail.sender || mail.from_addrs.first
+      helo_domain = Dkim::domain || config[:helo_domain] || get_domain(from)
 
       context = OpenSSL::SSL::SSLContext.new
       context.verify_mode = OpenSSL::SSL::VERIFY_NONE # OpenSSL::SSL::VERIFY_PEER
 
-      helo_domain = Dkim::domain || config[:helo_domain] || get_domain(from)
-
       smtp = Net::SMTP.new(server, nil)
       smtp.enable_starttls_auto(context)
 
+      response = nil
       smtp.start(helo_domain, nil, nil, nil) do |smtp|
         response = smtp.send_message(raw_mail, from, to)
         logger.info "#{to} - #{response.message.strip}"
