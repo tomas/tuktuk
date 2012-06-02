@@ -11,14 +11,17 @@ DEFAULTS = {
 
 module Tuktuk
 
+  class DNSError < RuntimeError; end
+  class MissingFieldsError < ArgumentError; end
+
   class << self
 
     def deliver(message, opts = {})
       config.merge(opts)
       mail = Package.new(message)
       mail['X-Mailer'] = opts[:smtp_server_name] || "Tuktuk SMTP #{VERSION}"
-      lookup_and_deliver(mail)
-      mail
+      response = lookup_and_deliver(mail)
+      return response, mail
     end
 
     def dkim=(dkim_opts)
@@ -42,7 +45,7 @@ module Tuktuk
     end
 
     def get_domain(email_address)
-      email_address[/@([a-z0-9\._-]+)/i, 1]
+      email_address.to_s[/@([a-z0-9\._-]+)/i, 1]
     end
 
     def success(destination)
@@ -55,9 +58,8 @@ module Tuktuk
         sleep config[:retry_sleep]
         lookup_and_deliver(mail, attempt+1)
       else
-        error_message = error.respond_to?(:message) ? "#{error.message} [#{error.class.name}]" : error
-        logger.error("#{destination} - Unable to send: #{error_message}")
-        raise "Unable to send to #{destination}: #{error_message}"
+        logger.error("#{destination} - Unable to send after #{attempt} attempts: #{error_message} [#{error.class.name}]")
+        raise error
       end
     end
 
@@ -66,23 +68,24 @@ module Tuktuk
       if mx = res.mx(domain)
         mx.sort {|x,y| x.preference <=> y.preference}.map {|rr| rr.exchange}
       else
-        raise RuntimeError, "Could not locate MX records for domain #{domain}."
+        raise DNSError, "Could not locate MX records for domain #{domain}."
       end
     end
 
     def lookup_and_deliver(mail, attempt = 1)
-      raise "No destinations found! Forgot to pass the to: field?" if mail.destinations.empty?
+      raise MissingFieldsError, "No destinations found! You need to pass a :to field." if mail.destinations.empty?
 
+      response = nil
       mail.destinations.each do |destination|
 
         domain = get_domain(destination)
         servers = smtp_servers_for_domain(domain)
-        error(mail, destination, "Unknown host: #{domain}") && next if servers.empty?
+        error(mail, destination, DNSError.new("Unknown host: #{domain}")) && next if servers.empty?
 
         last_error = nil
         servers.each do |server|
           begin
-            send_now(mail, server, destination)
+            response = send_now(mail, server, destination)
             break
           rescue => e
             last_error = e
@@ -90,6 +93,7 @@ module Tuktuk
         end
         error(mail, destination, last_error, attempt) if last_error
       end
+      response
     end
 
     def send_now(mail, server, to)
@@ -106,11 +110,12 @@ module Tuktuk
       smtp = Net::SMTP.new(server, nil)
       smtp.enable_starttls_auto(context)
       smtp.start(domain, nil, nil, nil) do |smtp|
-        result = smtp.send_message(raw_mail, from, to)
-        logger.info result.string
+        response = smtp.send_message(raw_mail, from, to)
+        logger.info response.message
       end
 
       success(to)
+      response
     end
 
   end
