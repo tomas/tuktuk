@@ -19,10 +19,12 @@ To enable DKIM:
 ````
   require 'tuktuk'
 
-  Tuktuk.dkim = {
+  Tuktuk.options = {
+    :dkim => {
       :domain => 'yoursite.com',
       :selector => 'mailer',
       :private_key => IO.read('ssl/yoursite.com.key')
+    }
   }
 
   email = {
@@ -33,6 +35,17 @@ To enable DKIM:
   }
 
   Tuktuk.deliver(email)
+````
+
+Additional options:
+
+````
+  Tuktuk.options = {
+    :log_to => 'log/mailer.log',
+    :max_attempts => 5,
+    :retry_sleep => 10,
+    :dkim => { ... }
+  }
 ````
 
 That's all.
