@@ -7,7 +7,6 @@ require 'tuktuk/package'
 DEFAULTS = {
   :retry_sleep =>  10,
   :max_attempts => 3,
-  :mailer => "Tuktuk SMTP #{VERSION}",
   :log_to => nil # $stdout
 }
 
@@ -21,7 +20,7 @@ module Tuktuk
     def deliver(message, opts = {})
       options = opts
       mail = Package.new(message)
-      mail['X-Mailer'] = config[:mailer]
+      mail['X-Mailer'] = "Tuktuk SMTP v#{VERSION}"
       response = lookup_and_deliver(mail)
       return response, mail
     end
