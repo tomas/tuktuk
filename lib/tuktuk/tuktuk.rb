@@ -5,9 +5,10 @@ require 'logger'
 require 'tuktuk/package'
 
 DEFAULTS = {
-  :retry_sleep =>  10,
+  :retry_sleep  => 10,
   :max_attempts => 3,
-  :log_to => nil # $stdout
+  :verify_ssl   => true,
+  :log_to       => nil # $stdout,
 }
 
 module Tuktuk
@@ -18,7 +19,7 @@ module Tuktuk
   class << self
 
     def deliver(message, opts = {})
-      options = opts
+      self.options = opts
       mail = Package.new(message)
       mail['X-Mailer'] = "Tuktuk SMTP v#{VERSION}"
       response = lookup_and_deliver(mail)
@@ -33,8 +34,8 @@ module Tuktuk
     end
 
     def dkim=(dkim_opts)
-      Dkim::domain = dkim_opts[:domain]
-      Dkim::selector = dkim_opts[:selector]
+      Dkim::domain      = dkim_opts[:domain]
+      Dkim::selector    = dkim_opts[:selector]
       Dkim::private_key = dkim_opts[:private_key]
     end
 
@@ -56,8 +57,8 @@ module Tuktuk
       email_address && email_address.to_s[/@([a-z0-9\._-]+)/i, 1]
     end
 
-    def success(destination)
-      logger.info("#{destination} - Successfully sent!")
+    def success(to)
+      logger.info("#{to} - Successfully sent!")
     end
 
     def error(mail, to, error, attempt = 1)
@@ -66,7 +67,7 @@ module Tuktuk
         sleep config[:retry_sleep]
         lookup_and_deliver(mail, attempt+1)
       else
-        logger.error("#{to} - Unable to send after #{attempt} attempts: #{error.message} [#{error.class.name}]")
+        logger.error("#{to} - Couldn't send after #{attempt} attempts: #{error.message} [#{error.class.name}]")
         raise error
       end
     end
@@ -112,7 +113,8 @@ module Tuktuk
       helo_domain = Dkim::domain || config[:helo_domain] || get_domain(from)
 
       context = OpenSSL::SSL::SSLContext.new
-      context.verify_mode = OpenSSL::SSL::VERIFY_NONE # OpenSSL::SSL::VERIFY_PEER
+      context.verify_mode = config[:verify_ssl] ?
+        OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
 
       smtp = Net::SMTP.new(server, nil)
       smtp.enable_starttls_auto(context)
