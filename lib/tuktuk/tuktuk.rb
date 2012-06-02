@@ -8,7 +8,7 @@ DEFAULTS = {
   :retry_sleep =>  10,
   :max_attempts => 3,
   :mailer => "Tuktuk SMTP #{VERSION}",
-  :log_level => Logger::INFO
+  :log_to => nil # $stdout
 }
 
 module Tuktuk
@@ -50,7 +50,7 @@ module Tuktuk
     end
 
     def logger
-      @logger ||= Logger.new(config[:logfile])
+      @logger ||= Logger.new(config[:log_to])
     end
 
     def get_domain(email_address)
