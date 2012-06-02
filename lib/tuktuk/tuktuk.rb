@@ -61,8 +61,8 @@ module Tuktuk
       logger.info("#{to} - Successfully sent!")
     end
 
-    def error(mail, to, error, attempt = 1)
-      if attempt <= config[:max_attempts] && (error.is_a?(Net::SMTPServerBusy) or error.is_a?(EOFError))
+    def error(mail, to, error, attempt)
+      if attempt < config[:max_attempts] && (error.is_a?(Net::SMTPServerBusy) or error.is_a?(EOFError))
         logger.info "#{to} - Got #{error.class.name} error. Retrying after #{config[:retry_sleep]} secs..."
         sleep config[:retry_sleep]
         lookup_and_deliver(mail, attempt+1)
@@ -89,7 +89,7 @@ module Tuktuk
 
         domain = get_domain(to)
         servers = smtp_servers_for_domain(domain)
-        error(mail, to, DNSError.new("Unknown host: #{domain}")) && next if servers.empty?
+        error(mail, to, DNSError.new("Unknown host: #{domain}"), attempt) && next if servers.empty?
 
         last_error = nil
         servers.each do |server|
