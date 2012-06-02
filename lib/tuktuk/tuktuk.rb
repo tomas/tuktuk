@@ -7,7 +7,8 @@ require 'tuktuk/package'
 DEFAULTS = {
   :retry_sleep =>  10,
   :max_attempts => 3,
-  :mailer => "Tuktuk SMTP #{VERSION}"
+  :mailer => "Tuktuk SMTP #{VERSION}",
+  :log_level => Logger::INFO
 }
 
 module Tuktuk
@@ -17,9 +18,9 @@ module Tuktuk
     def deliver(message, opts = {})
       options = opts
       mail = Package.new(message)
-      mail['X-Mailer'] = opts[:smtp_server_name] || "Tuktuk SMTP #{VERSION}"
-      lookup_and_deliver(mail)
-      mail
+      mail['X-Mailer'] = config[:mailer]
+      response = lookup_and_deliver(mail)
+      return response, mail
     end
 
     def options=(hash)
@@ -30,7 +31,6 @@ module Tuktuk
     end
 
     def dkim=(dkim_opts)
-      # logger.info "Enabling DKIM for domain #{dkim_opts[:domain]}..."
       Dkim::domain = dkim_opts[:domain]
       Dkim::selector = dkim_opts[:selector]
       Dkim::private_key = dkim_opts[:private_key]
@@ -55,7 +55,7 @@ module Tuktuk
     end
 
     def success(destination)
-      logger.info("#{destination} - Successfully sent mail!")
+      logger.info("#{destination} - Successfully sent!")
     end
 
     def error(mail, to, error, attempt = 1)
@@ -64,7 +64,7 @@ module Tuktuk
         sleep config[:retry_sleep]
         lookup_and_deliver(mail, attempt+1)
       else
-        logger.error("#{to} - Unable to send after #{attempt} attempts: #{error_message} [#{error.class.name}]")
+        logger.error("#{to} - Unable to send after #{attempt} attempts: #{error.message} [#{error.class.name}]")
         raise error
       end
     end
@@ -82,45 +82,48 @@ module Tuktuk
       raise MissingFieldsError, "No destinations found! You need to pass a :to field." if mail.destinations.empty?
 
       response = nil
-      mail.destinations.each do |destination|
+      mail.destinations.each do |to|
 
-        domain = get_domain(destination)
+        domain = get_domain(to)
         servers = smtp_servers_for_domain(domain)
-        error(mail, destination, DNSError.new("Unknown host: #{domain}")) && next if servers.empty?
+        error(mail, to, DNSError.new("Unknown host: #{domain}")) && next if servers.empty?
 
         last_error = nil
         servers.each do |server|
           begin
-            response = send_now(mail, server, destination)
+            response = send_now(mail, server, to)
             break
           rescue => e
             last_error = e
           end
         end
-        error(mail, destination, last_error, attempt) if last_error
+        error(mail, to, last_error, attempt) if last_error
       end
       response
     end
 
     def send_now(mail, server, to)
-      raw_mail = use_dkim? ? Dkim.sign(mail.to_s).to_s : mail.to_s
-
-      from = mail.return_path || mail.sender || mail.from_addrs.first
       logger.info "#{to} - Delivering email at #{server}..."
+
+      response = nil
+      raw_mail = use_dkim? ? Dkim.sign(mail.to_s).to_s : mail.to_s
+      from = mail.return_path || mail.sender || mail.from_addrs.first
 
       context = OpenSSL::SSL::SSLContext.new
       context.verify_mode = OpenSSL::SSL::VERIFY_NONE # OpenSSL::SSL::VERIFY_PEER
 
-      helo_domain = Dkim::domain || config[:helo_domain] || get_domain(mail[:from])
+      helo_domain = Dkim::domain || config[:helo_domain] || get_domain(from)
 
       smtp = Net::SMTP.new(server, nil)
       smtp.enable_starttls_auto(context)
+
       smtp.start(helo_domain, nil, nil, nil) do |smtp|
         response = smtp.send_message(raw_mail, from, to)
         logger.info "#{to} - #{response.message.strip}"
       end
 
       success(to)
+      response
     end
 
   end
