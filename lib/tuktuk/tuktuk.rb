@@ -62,7 +62,7 @@ module Tuktuk
     end
 
     def error(mail, to, error, attempt)
-      if attempt < config[:max_attempts] && (error.is_a?(Net::SMTPServerBusy) or error.is_a?(EOFError))
+      if attempt < config[:max_attempts] and (error.is_a?(EOFError) || error.is_a?(TimeoutError))
         logger.info "#{to} - Got #{error.class.name} error. Retrying after #{config[:retry_sleep]} secs..."
         sleep config[:retry_sleep]
         lookup_and_deliver(mail, attempt+1)
@@ -73,11 +73,10 @@ module Tuktuk
     end
 
     def smtp_servers_for_domain(domain)
-      res = Net::DNS::Resolver.new
-      if mx = res.mx(domain)
+      if mx = Net::DNS::Resolver.new.mx(domain)
         mx.sort {|x,y| x.preference <=> y.preference}.map {|rr| rr.exchange}
       else
-        raise DNSError, "Could not locate MX records for domain #{domain}."
+        raise DNSError, "No MX records found for domain #{domain}."
       end
     end
 
