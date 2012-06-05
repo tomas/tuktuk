@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.email       = ['tomas@forkhq.com']
   s.homepage    = "https://github.com/tomas/tuktuk"
   s.summary     = "SMTP client for Ruby with DKIM support."
-  s.description = "Easy way of sending DKIM-signed emails from Ruby, no depenencies needed."
+  s.description = "Easy way of sending DKIM-signed emails from Ruby, no dependencies needed."
 
   s.required_rubygems_version = ">= 1.3.6"
   s.rubyforge_project         = "tuktuk"
