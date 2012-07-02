@@ -1,6 +1,14 @@
 Tuktuk - SMTP client for Ruby
 =============================
 
+Unlike Pony (which is friggin' awesome by the way) Tuktuk does not rely on 
+`sendmail` or a separate SMTP server in order to send email. Tuktuk looks up the
+MX servers of the destination address and connects directly using Net::SMTP. 
+This way you don't need to install Exim or Postfix and you can actually handle 
+response status codes -- like bounces, 5xx -- within your application. 
+
+Plus, it supports DKIM out of the box.
+
 ``` ruby
   require 'tuktuk'
 
