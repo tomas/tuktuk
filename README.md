@@ -1,7 +1,7 @@
 Tuktuk - SMTP client for Ruby
 =============================
 
-````
+``` ruby
   require 'tuktuk'
 
   email = {
@@ -12,11 +12,11 @@ Tuktuk - SMTP client for Ruby
   }
 
   Tuktuk.deliver(email)
-````
+```
 
 To enable DKIM:
 
-````
+``` ruby
   require 'tuktuk'
 
   Tuktuk.options = {
@@ -35,18 +35,18 @@ To enable DKIM:
   }
 
   Tuktuk.deliver(email)
-````
+```
 
 Additional options:
 
-````
+``` ruby
   Tuktuk.options = {
     :log_to => 'log/mailer.log',
     :max_attempts => 5,
     :retry_sleep => 10,
     :dkim => { ... }
   }
-````
+```
 
 That's all.
 
