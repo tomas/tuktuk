@@ -3,10 +3,12 @@ require 'net/dns/resolver'
 require 'dkim'
 require 'logger'
 require 'tuktuk/package'
+require 'tuktuk/cache'
 
 DEFAULTS = {
   :retry_sleep  => 10,
   :max_attempts => 3,
+  :read_timeout => nil,
   :verify_ssl   => true,
   :log_to       => nil # $stdout,
 }
@@ -17,6 +19,10 @@ module Tuktuk
   class MissingFieldsError < ArgumentError; end
 
   class << self
+
+    def cache
+      @cache ||= Cache.new(100)
+    end
 
     def deliver(message, opts = {})
       self.options = opts if opts.any?
@@ -73,6 +79,15 @@ module Tuktuk
     end
 
     def smtp_servers_for_domain(domain)
+      unless servers = cache.get(domain)
+        if servers = lookup_smtp_servers(domain) and servers.any?
+          cache.set(domain, servers)
+        end
+      end
+      servers
+    end
+
+    def lookup_smtp_servers(domain)
       if mx = Net::DNS::Resolver.new.mx(domain)
         mx.sort {|x,y| x.preference <=> y.preference}.map {|rr| rr.exchange}
       else
@@ -117,6 +132,7 @@ module Tuktuk
 
       smtp = Net::SMTP.new(server, nil)
       smtp.enable_starttls_auto(context)
+      smtp.read_timeout = config[:read_timeout] if config[:read_timeout]
 
       response = nil
       smtp.start(helo_domain, nil, nil, nil) do |smtp|
