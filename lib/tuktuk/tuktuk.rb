@@ -9,6 +9,7 @@ DEFAULTS = {
   :retry_sleep  => 10,
   :max_attempts => 3,
   :read_timeout => nil,
+  :open_timeout => nil,
   :verify_ssl   => true,
   :log_to       => nil # $stdout,
 }
@@ -133,6 +134,7 @@ module Tuktuk
       smtp = Net::SMTP.new(server, nil)
       smtp.enable_starttls_auto(context)
       smtp.read_timeout = config[:read_timeout] if config[:read_timeout]
+      smtp.open_timeout = config[:open_timeout] if config[:open_timeout]
 
       response = nil
       smtp.start(helo_domain, nil, nil, nil) do |smtp|
