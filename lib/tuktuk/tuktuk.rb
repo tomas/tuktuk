@@ -1,9 +1,8 @@
 require 'net/smtp'
-require 'net/dns/resolver'
 require 'dkim'
 require 'logger'
-require 'tuktuk/package'
-require 'tuktuk/cache'
+%w(package cache dns).each { |lib| require "./lib/tuktuk/#{lib}" }
+require './lib/tuktuk/version' unless defined?(Tuktuk::VERSION)
 
 DEFAULTS = {
   :retry_sleep  => 10,
@@ -81,19 +80,13 @@ module Tuktuk
 
     def smtp_servers_for_domain(domain)
       unless servers = cache.get(domain)
-        if servers = lookup_smtp_servers(domain) and servers.any?
+        if servers = DNS.get_mx(domain) and servers.any?
           cache.set(domain, servers)
+        else
+          raise DNSError, "No MX records found for domain #{domain}."
         end
       end
       servers
-    end
-
-    def lookup_smtp_servers(domain)
-      if mx = Net::DNS::Resolver.new.mx(domain)
-        mx.sort {|x,y| x.preference <=> y.preference}.map {|rr| rr.exchange}
-      else
-        raise DNSError, "No MX records found for domain #{domain}."
-      end
     end
 
     def lookup_and_deliver(mail, attempt = 1)
