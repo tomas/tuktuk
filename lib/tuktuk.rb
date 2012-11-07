@@ -1,1 +1,1 @@
-require './lib/tuktuk/tuktuk'
+require 'tuktuk/tuktuk'

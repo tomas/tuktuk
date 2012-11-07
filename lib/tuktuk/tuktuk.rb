@@ -1,8 +1,8 @@
 require 'net/smtp'
 require 'dkim'
 require 'logger'
-%w(package cache dns).each { |lib| require "./lib/tuktuk/#{lib}" }
-require './lib/tuktuk/version' unless defined?(Tuktuk::VERSION)
+%w(package cache dns).each { |lib| require "tuktuk/#{lib}" }
+require 'tuktuk/version' unless defined?(Tuktuk::VERSION)
 
 DEFAULTS = {
   :retry_sleep  => 10,
