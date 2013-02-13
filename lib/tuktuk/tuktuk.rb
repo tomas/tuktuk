@@ -135,21 +135,6 @@ module Tuktuk
       response
     end
 
-    def send_now(mail, server, to)
-      logger.info "#{to} - Delivering email at #{server}..."
-      from = get_from(mail)
-
-      response = nil
-      smtp = establish_connection(server)
-      smtp.start(get_helo_domain(from), nil, nil, nil) do |smtp|
-        response = smtp.send_message(get_raw_mail(mail), from, to)
-        logger.info "#{to} - #{response.message.strip}"
-      end
-
-      success(to)
-      response
-    end
-
     def lookup_and_deliver_many(by_domain)
       if config[:max_workers] && config[:max_workers] > 0
         lookup_and_deliver_many_threaded(by_domain)
@@ -200,8 +185,7 @@ module Tuktuk
       last_error = nil
       servers.each do |server|
         begin
-          response_hash = send_many_now(server, mails)
-          response_hash.each do |mail, resp|
+          send_many_now(server, mails).each do |mail, resp|
             responses.push [resp, mail]
           end
           break
@@ -218,20 +202,37 @@ module Tuktuk
       responses
     end
 
+    def send_now(mail, server, to)
+      logger.info "#{to} - Delivering email at #{server}..."
+      from = get_from(mail)
+
+      response = nil
+      smtp = init_connection(server)
+      smtp.start(get_helo_domain(from), nil, nil, nil) do |smtp|
+        response = smtp.send_message(get_raw_mail(mail), from, to)
+        logger.info "#{to} - #{response.message.strip}"
+      end
+
+      success(to)
+      response
+    end
+
     def send_many_now(server, mails)
       logger.info "Delivering #{mails.count} mails at #{server}..."
       responses = {}
 
-      smtp = establish_connection(server)
+      # server = 'localhost' if ENV['DEBUG']
+      smtp = init_connection(server)
       smtp.start(get_helo_domain, nil, nil, nil) do |smtp|
         mails.each do |mail|
           begin
             resp = smtp.send_message(get_raw_mail(mail), get_from(mail), mail.to)
-          rescue => e
+          rescue => e # may be Net::SMTPFatalError (550 Mailbox not found)
+            # logger.error e.inspect
             resp = e
           end
           responses[mail] = resp
-          logger.info "#{mail.to} - #{resp}"
+          logger.info "#{mail.to} - #{resp.message.strip}" # both error and response have this method
         end
       end
 
@@ -250,7 +251,7 @@ module Tuktuk
       Dkim::domain || config[:helo_domain] || (from && get_domain(from))
     end
 
-    def establish_connection(server)
+    def init_connection(server)
       context = OpenSSL::SSL::SSLContext.new
       context.verify_mode = config[:verify_ssl] ?
         OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
