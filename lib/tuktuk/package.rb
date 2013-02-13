@@ -1,16 +1,22 @@
 require 'mail'
 
+class Mail::Message
+  attr_accessor :array_index
+end
+
 module Package
 
   class << self
 
-    def new(message)
+    def new(message, index = nil)
       mail = message[:html_body] ? mixed(message) : plain(message)
+      mail.array_index = index if index
       mail.charset = 'UTF-8'
 
       mail['In-Reply-To'] = message[:in_reply_to] if message[:in_reply_to]
       mail['List-Archive'] = message[:list_archive] if message[:list_archive]
       mail['List-Id'] = message[:list_id] if message[:list_id]
+      mail['X-Mailer'] = "Tuktuk SMTP v#{Tuktuk::VERSION}"
 
       if message[:return_path]
         mail['Return-Path'] = message[:return_path]

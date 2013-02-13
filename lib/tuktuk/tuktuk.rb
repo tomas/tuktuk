@@ -1,12 +1,15 @@
 require 'net/smtp'
 require 'dkim'
 require 'logger'
+require 'work_queue'
+
 %w(package cache dns).each { |lib| require "tuktuk/#{lib}" }
 require 'tuktuk/version' unless defined?(Tuktuk::VERSION)
 
 DEFAULTS = {
   :retry_sleep  => 10,
   :max_attempts => 3,
+  :max_workers  => 10,
   :read_timeout => nil,
   :open_timeout => nil,
   :verify_ssl   => true,
@@ -27,9 +30,14 @@ module Tuktuk
     def deliver(message, opts = {})
       self.options = opts if opts.any?
       mail = Package.new(message)
-      mail['X-Mailer'] = "Tuktuk SMTP v#{VERSION}"
       response = lookup_and_deliver(mail)
       return response, mail
+    end
+
+    def deliver_many(messages, opts = {})
+      self.options = opts if opts.any?
+      messages_by_domain = reorder_by_domain(messages)
+      lookup_and_deliver_many(messages_by_domain)
     end
 
     def options=(hash)
@@ -59,10 +67,6 @@ module Tuktuk
       @logger ||= Logger.new(config[:log_to])
     end
 
-    def get_domain(email_address)
-      email_address && email_address.to_s[/@([a-z0-9\._-]+)/i, 1]
-    end
-
     def success(to)
       logger.info("#{to} - Successfully sent!")
     end
@@ -78,26 +82,44 @@ module Tuktuk
       end
     end
 
+    def get_domain(email_address)
+      email_address && email_address.to_s[/@([a-z0-9\._-]+)/i, 1]
+    end
+
+    def reorder_by_domain(array)
+      hash = {}
+      array.each_with_index do |message, i|
+        mail = Package.new(message, i)
+        raise "Multiple destinations for email: #{message.inspect}" if mail.destinations.count > 1
+
+        if to = mail.destinations.first and domain = get_domain(to)
+          hash[domain] = [] if hash[domain].nil?
+          hash[domain].push(mail)
+        end
+      end
+      hash
+    end
+
     def smtp_servers_for_domain(domain)
       unless servers = cache.get(domain)
         if servers = DNS.get_mx(domain) and servers.any?
           cache.set(domain, servers)
-        else
-          raise DNSError, "No MX records found for domain #{domain}."
         end
       end
-      servers
+      servers.any? && servers
     end
 
     def lookup_and_deliver(mail, attempt = 1)
-      raise MissingFieldsError, "No destinations found! You need to pass a :to field." if mail.destinations.empty?
+      if mail.destinations.empty?
+        raise MissingFieldsError, "No destinations found! You need to pass a :to field."
+      end
 
       response = nil
       mail.destinations.each do |to|
 
         domain = get_domain(to)
         servers = smtp_servers_for_domain(domain)
-        error(mail, to, DNSError.new("Unknown host: #{domain}"), attempt) && next if servers.empty?
+        error(mail, to, DNSError.new("No MX records for domain #{domain}"), attempt) && next if servers.empty?
 
         last_error = nil
         servers.each do |server|
@@ -115,11 +137,93 @@ module Tuktuk
 
     def send_now(mail, server, to)
       logger.info "#{to} - Delivering email at #{server}..."
+      from = get_from(mail)
 
-      raw_mail = use_dkim? ? Dkim.sign(mail.to_s).to_s : mail.to_s
-      from = mail.return_path || mail.sender || mail.from_addrs.first
-      helo_domain = Dkim::domain || config[:helo_domain] || get_domain(from)
+      response = nil
+      smtp = establish_connection(server)
+      smtp.start(get_helo_domain(from), nil, nil, nil) do |smtp|
+        response = smtp.send_message(get_raw_mail(mail), from, to)
+        logger.info "#{to} - #{response.message.strip}"
+      end
 
+      success(to)
+      response
+    end
+
+    def lookup_and_deliver_many(by_domain)
+      responses = []
+      queue = WorkQueue.new(config[:max_workers])
+
+      by_domain.each do |domain, mails|
+
+        queue.enqueue_b(domain, mails) do |domain, mails|
+
+          unless servers = smtp_servers_for_domain(domain)
+            err = DNSError.new("No MX Records for domain #{domain}")
+            mails.each {|mail| responses[mail.array_index] = [err, mail] }
+            next
+          end
+
+          last_error = nil
+          servers.each do |server|
+            begin
+              # send emails and then assign responses to array according to mail index
+              response_hash = send_many_now(server, mails)
+              response_hash.each do |index, resp|
+                responses[index] = [resp, mails.detect {|m| m.array_index = index}]
+              end
+              break
+            rescue => e
+              # logger.error e.message
+              last_error = e
+            end
+          end
+
+          if last_error # got error at server level, mark all messages with errors
+            mails.each {|mail| responses[mail.array_index] = [last_error, mail] }
+          end
+
+        end # worker
+
+      end
+
+      queue.join
+      responses
+    end
+
+    def send_many_now(server, mails)
+      logger.info "Delivering #{mails.count} mails at #{server}..."
+      responses = {}
+
+      smtp = establish_connection(server)
+      smtp.start(get_helo_domain, nil, nil, nil) do |smtp|
+        mails.each do |mail|
+          begin
+            resp = smtp.send_message(get_raw_mail(mail), get_from(mail), to)
+          rescue => e
+            resp = e
+          end
+          responses[mail.array_index] = resp
+          logger.info "#{mail.to} - #{resp}"
+        end
+      end
+
+      responses
+    end
+
+    def get_raw_mail(mail)
+      use_dkim? ? Dkim.sign(mail.to_s).to_s : mail.to_s
+    end
+
+    def get_from(mail)
+      mail.return_path || mail.sender || mail.from_addrs.first
+    end
+
+    def get_helo_domain(from = nil)
+      Dkim::domain || config[:helo_domain] || (from && get_domain(from))
+    end
+
+    def establish_connection(server)
       context = OpenSSL::SSL::SSLContext.new
       context.verify_mode = config[:verify_ssl] ?
         OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
@@ -128,15 +232,7 @@ module Tuktuk
       smtp.enable_starttls_auto(context)
       smtp.read_timeout = config[:read_timeout] if config[:read_timeout]
       smtp.open_timeout = config[:open_timeout] if config[:open_timeout]
-
-      response = nil
-      smtp.start(helo_domain, nil, nil, nil) do |smtp|
-        response = smtp.send_message(raw_mail, from, to)
-        logger.info "#{to} - #{response.message.strip}"
-      end
-
-      success(to)
-      response
+      smtp
     end
 
   end
