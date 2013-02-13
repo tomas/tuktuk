@@ -10,8 +10,8 @@ DEFAULTS = {
   :retry_sleep  => 10,
   :max_attempts => 3,
   :max_workers  => 10,
-  :read_timeout => nil,
-  :open_timeout => nil,
+  :read_timeout => 20,
+  :open_timeout => 20,
   :verify_ssl   => true,
   :log_to       => nil # $stdout,
 }
