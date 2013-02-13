@@ -72,7 +72,7 @@ module Tuktuk
     end
 
     def error(mail, to, error, attempt)
-      if attempt < config[:max_attempts] and (error.is_a?(EOFError) || error.is_a?(TimeoutError))
+      if attempt < config[:max_attempts] and (error.is_a?(EOFError) || error.is_a?(Timeout::Error))
         logger.info "#{to} - Got #{error.class.name} error. Retrying after #{config[:retry_sleep]} secs..."
         sleep config[:retry_sleep]
         lookup_and_deliver(mail, attempt+1)
@@ -221,22 +221,24 @@ module Tuktuk
     def send_many_now(server, mails)
       logger.info "Delivering #{mails.count} mails at #{server}..."
       responses = {}
+      timeout_error = nil
 
       server = 'localhost' if ENV['DEBUG']
       smtp = init_connection(server)
       smtp.start(get_helo_domain, nil, nil, nil) do |smtp|
         mails.each do |mail|
-          begin
-            resp = smtp.send_message(get_raw_mail(mail), get_from(mail), mail.to)
-            success = true
-          rescue => e # may be Net::SMTPFatalError (550 Mailbox not found)
-            # logger.error e.inspect
-            success = false
-            resp = e
+          unless timeout_error
+            begin
+              resp = smtp.send_message(get_raw_mail(mail), get_from(mail), mail.to)
+            rescue Net::SMTPError, EOFError, Timeout::Error => e # may be Net::SMTPFatalError (550 Mailbox not found)
+              # logger.error e.inspect
+              timeout_error = e if e.is_a?(Timeout::Error)
+              resp = e
+            end
           end
-          responses[mail] = resp
-          status = success ? 'SENT' : 'ERROR'
-          logger.info "#{mail.to} [#{status}] #{resp.message.strip}" # both error and response have this method
+          responses[mail] = timeout_error || resp
+          status = resp.is_a?(Net::SMTP::Response) ? 'SENT' : 'ERROR'
+          logger.info "#{mail.to} [#{status}] #{responses[mail].message.strip}" # both error and response have this method
         end
       end
 
