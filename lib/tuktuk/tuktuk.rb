@@ -164,6 +164,7 @@ module Tuktuk
 
       by_domain.each do |domain, mails|
         queue.enqueue_b(domain, mails) do |domain, mails|
+          # send emails and then assign responses to array according to mail index
           rr = lookup_and_deliver_by_domain(domain, mails)
           rr.each do |resp, mail|
             responses[mail.array_index] = [resp, mail]
@@ -178,6 +179,7 @@ module Tuktuk
     def lookup_and_deliver_many_sync(by_domain)
       responses = []
       by_domain.each do |domain, mails|
+        # send emails and then assign responses to array according to mail index
         rr = lookup_and_deliver_by_domain(domain, mails)
         rr.each do |resp, mail|
           responses[mail.array_index] = [resp, mail]
@@ -198,10 +200,9 @@ module Tuktuk
       last_error = nil
       servers.each do |server|
         begin
-          # send emails and then assign responses to array according to mail index
           response_hash = send_many_now(server, mails)
-          response_hash.each do |index, resp|
-            responses.push [resp, mails.detect {|m| m.array_index = index}]
+          response_hash.each do |mail, resp|
+            responses.push [resp, mail]
           end
           break
         rescue => e
@@ -213,6 +214,7 @@ module Tuktuk
       if last_error # got error at server level, mark all messages with errors
         mails.each {|mail| responses.push [last_error, mail] }
       end
+
       responses
     end
 
@@ -228,7 +230,7 @@ module Tuktuk
           rescue => e
             resp = e
           end
-          responses[mail.array_index] = resp
+          responses[mail] = resp
           logger.info "#{mail.to} - #{resp}"
         end
       end
