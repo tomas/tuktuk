@@ -18,7 +18,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "net-dns", "= 0.6.1"
   s.add_runtime_dependency "mail", "~> 2.3"
   s.add_runtime_dependency "dkim", "~> 0.0.2"
-  s.add_runtime_dependency 'work_queue', '~> 2.0.0'
+  s.add_runtime_dependency 'work_queue', '~> 2.5.0'
 
   s.files        = `git ls-files`.split("\n")
   s.executables  = `git ls-files`.split("\n").map{|f| f =~ /^bin\/(.*)/ ? $1 : nil}.compact
