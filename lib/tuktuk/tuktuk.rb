@@ -207,6 +207,7 @@ module Tuktuk
       from = get_from(mail)
 
       response = nil
+      server = 'localhost' if ENV['DEBUG']
       smtp = init_connection(server)
       smtp.start(get_helo_domain(from), nil, nil, nil) do |smtp|
         response = smtp.send_message(get_raw_mail(mail), from, to)
