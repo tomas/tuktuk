@@ -9,7 +9,7 @@ require 'tuktuk/version' unless defined?(Tuktuk::VERSION)
 DEFAULTS = {
   :retry_sleep  => 10,
   :max_attempts => 3,
-  :max_workers  => 10,
+  :max_workers  => 4,
   :read_timeout => 20,
   :open_timeout => 20,
   :verify_ssl   => true,
@@ -199,7 +199,7 @@ module Tuktuk
       smtp.start(get_helo_domain, nil, nil, nil) do |smtp|
         mails.each do |mail|
           begin
-            resp = smtp.send_message(get_raw_mail(mail), get_from(mail), to)
+            resp = smtp.send_message(get_raw_mail(mail), get_from(mail), mail.to)
           rescue => e
             resp = e
           end
