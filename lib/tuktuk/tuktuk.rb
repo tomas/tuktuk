@@ -9,7 +9,7 @@ require 'tuktuk/version' unless defined?(Tuktuk::VERSION)
 DEFAULTS = {
   :retry_sleep  => 10,
   :max_attempts => 3,
-  :max_workers  => 4,
+  :max_workers  => 0,
   :read_timeout => 20,
   :open_timeout => 20,
   :verify_ssl   => true,
@@ -151,43 +151,68 @@ module Tuktuk
     end
 
     def lookup_and_deliver_many(by_domain)
-      responses = []
+      if config[:max_workers] && config[:max_workers] > 0
+        lookup_and_deliver_many_threaded(by_domain)
+      else
+        lookup_and_deliver_many_sync(by_domain)
+      end
+    end
+
+    def lookup_and_deliver_many_threaded(by_domain)
       queue = WorkQueue.new(config[:max_workers])
+      responses = []
 
       by_domain.each do |domain, mails|
-
         queue.enqueue_b(domain, mails) do |domain, mails|
-
-          unless servers = smtp_servers_for_domain(domain)
-            err = DNSError.new("No MX Records for domain #{domain}")
-            mails.each {|mail| responses[mail.array_index] = [err, mail] }
-            next
+          rr = lookup_and_deliver_by_domain(domain, mails)
+          rr.each do |resp, mail|
+            responses[mail.array_index] = [resp, mail]
           end
-
-          last_error = nil
-          servers.each do |server|
-            begin
-              # send emails and then assign responses to array according to mail index
-              response_hash = send_many_now(server, mails)
-              response_hash.each do |index, resp|
-                responses[index] = [resp, mails.detect {|m| m.array_index = index}]
-              end
-              break
-            rescue => e
-              # logger.error e.message
-              last_error = e
-            end
-          end
-
-          if last_error # got error at server level, mark all messages with errors
-            mails.each {|mail| responses[mail.array_index] = [last_error, mail] }
-          end
-
         end # worker
-
       end
 
       queue.join
+      responses
+    end
+
+    def lookup_and_deliver_many_sync(by_domain)
+      responses = []
+      by_domain.each do |domain, mails|
+        rr = lookup_and_deliver_by_domain(domain, mails)
+        rr.each do |resp, mail|
+          responses[mail.array_index] = [resp, mail]
+        end
+      end
+      responses
+    end
+
+    def lookup_and_deliver_by_domain(domain, mails)
+      responses = []
+
+      unless servers = smtp_servers_for_domain(domain)
+        err = DNSError.new("No MX Records for domain #{domain}")
+        mails.each {|mail| responses.push [err, mail] }
+        return responses
+      end
+
+      last_error = nil
+      servers.each do |server|
+        begin
+          # send emails and then assign responses to array according to mail index
+          response_hash = send_many_now(server, mails)
+          response_hash.each do |index, resp|
+            responses.push [resp, mails.detect {|m| m.array_index = index}]
+          end
+          break
+        rescue => e
+          # logger.error e.message
+          last_error = e
+        end
+      end
+
+      if last_error # got error at server level, mark all messages with errors
+        mails.each {|mail| responses.push [last_error, mail] }
+      end
       responses
     end
 
