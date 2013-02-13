@@ -210,7 +210,7 @@ module Tuktuk
       smtp = init_connection(server)
       smtp.start(get_helo_domain(from), nil, nil, nil) do |smtp|
         response = smtp.send_message(get_raw_mail(mail), from, to)
-        logger.info "#{to} - #{response.message.strip}"
+        logger.info "#{to} - [SENT] #{response.message.strip}"
       end
 
       success(to)
@@ -221,18 +221,21 @@ module Tuktuk
       logger.info "Delivering #{mails.count} mails at #{server}..."
       responses = {}
 
-      # server = 'localhost' if ENV['DEBUG']
+      server = 'localhost' if ENV['DEBUG']
       smtp = init_connection(server)
       smtp.start(get_helo_domain, nil, nil, nil) do |smtp|
         mails.each do |mail|
           begin
             resp = smtp.send_message(get_raw_mail(mail), get_from(mail), mail.to)
+            success = true
           rescue => e # may be Net::SMTPFatalError (550 Mailbox not found)
             # logger.error e.inspect
+            success = false
             resp = e
           end
           responses[mail] = resp
-          logger.info "#{mail.to} - #{resp.message.strip}" # both error and response have this method
+          status = success ? 'SENT' : 'ERROR'
+          logger.info "#{mail.to} [#{status}] #{resp.message.strip}" # both error and response have this method
         end
       end
 
