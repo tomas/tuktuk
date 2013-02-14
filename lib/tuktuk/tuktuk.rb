@@ -90,7 +90,7 @@ module Tuktuk
       hash = {}
       array.each_with_index do |message, i|
         mail = Package.new(message, i)
-        raise "Multiple destinations for email: #{message.inspect}" if mail.destinations.count > 1
+        raise "Invalid destination count: #{mail.destinations.count}" if mail.destinations.count != 1
 
         if to = mail.destinations.first and domain = get_domain(to)
           hash[domain] = [] if hash[domain].nil?
