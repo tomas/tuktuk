@@ -230,6 +230,7 @@ module Tuktuk
           unless timeout_error
             begin
               resp = smtp.send_message(get_raw_mail(mail), get_from(mail), mail.to)
+              smtp.send(:getok, 'RSET') if server['hotmail'] # fix for '503 Sender already specified'
             rescue Net::SMTPError, EOFError, Timeout::Error => e # may be Net::SMTPFatalError (550 Mailbox not found)
               # logger.error e.inspect
               timeout_error = e if e.is_a?(Timeout::Error)
