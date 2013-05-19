@@ -150,6 +150,7 @@ module Tuktuk
       queue = WorkQueue.new(count)
       responses = []
 
+      logger.info("Delivering emails to #{by_domain.keys.count} domains...")
       by_domain.each do |domain, mails|
         queue.enqueue_b(domain, mails) do |domain, mails|
           # send emails and then assign responses to array according to mail index
@@ -167,6 +168,8 @@ module Tuktuk
 
     def lookup_and_deliver_many_sync(by_domain)
       responses = []
+
+      logger.info("Delivering emails to #{by_domain.keys.count} domains...")
       by_domain.each do |domain, mails|
         # send emails and then assign responses to array according to mail index
         rr = lookup_and_deliver_by_domain(domain, mails)
