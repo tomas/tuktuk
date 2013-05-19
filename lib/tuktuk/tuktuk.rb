@@ -12,6 +12,7 @@ DEFAULTS = {
   :max_workers  => 0,
   :read_timeout => 20,
   :open_timeout => 20,
+  :helo_domain  => nil,
   :verify_ssl   => true,
   :log_to       => nil # $stdout,
 }
@@ -93,6 +94,7 @@ module Tuktuk
         raise "Invalid destination count: #{mail.destinations.count}" if mail.destinations.count != 1
 
         if to = mail.destinations.first and domain = get_domain(to)
+          domain = domain.downcase
           hash[domain] = [] if hash[domain].nil?
           hash[domain].push(mail)
         end
@@ -136,7 +138,7 @@ module Tuktuk
     end
 
     def lookup_and_deliver_many(by_domain)
-      if config[:max_workers] && config[:max_workers] > 0
+      if config[:max_workers] && config[:max_workers] != 0
         lookup_and_deliver_many_threaded(by_domain)
       else
         lookup_and_deliver_many_sync(by_domain)
@@ -144,7 +146,8 @@ module Tuktuk
     end
 
     def lookup_and_deliver_many_threaded(by_domain)
-      queue = WorkQueue.new(config[:max_workers])
+      count = config[:max_workers].is_a?(Integer) ? config[:max_workers] : nil
+      queue = WorkQueue.new(count)
       responses = []
 
       by_domain.each do |domain, mails|
@@ -157,7 +160,8 @@ module Tuktuk
         end # worker
       end
 
-      queue.join
+      queue.join # wait for threads to finish
+      queue.kill # terminate queue
       responses
     end
 
