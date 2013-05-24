@@ -69,10 +69,10 @@ describe 'deliver many' do
 				@emails = [email, email, email]
 
 				@success = mock('Net::SMTP::Response')
-				@soft_email_bounce = Net::SMTPFatalError.new('503 Sender already specified')
-				@hard_email_bounce = Net::SMTPFatalError.new('505 Mailbox not found')
-				@soft_server_bounce = Net::SMTPServerBusy.new('Be back in a sec')
-				@hard_server_bounce = Tuktuk::DNSError.new('No MX records found.')
+				@soft_email_bounce = SoftMailboxBounce.new('503 Sender already specified')
+				@hard_email_bounce = HardMailboxBounce.new('505 Mailbox not found')
+				@soft_server_bounce = HardServerBounce.new('Be back in a sec')
+				@hard_server_bounce = DNSError.new('No MX records found.')
 			end
 
 			describe 'when domain exists' do
