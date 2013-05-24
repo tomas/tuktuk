@@ -28,6 +28,7 @@ module Tuktuk
     end
 
     def deliver(message, opts = {})
+      raise 'Please pass a valid message object.' unless messages.is_a?(Hash)
       self.options = opts if opts.any?
       mail = Package.new(message)
       response = lookup_and_deliver(mail)
@@ -35,6 +36,7 @@ module Tuktuk
     end
 
     def deliver_many(messages, opts = {})
+      raise 'Please pass an array of messages.' unless messages.is_a?(Array) and messages.any?
       self.options = opts if opts.any?
       messages_by_domain = reorder_by_domain(messages)
       lookup_and_deliver_many(messages_by_domain)
@@ -195,6 +197,7 @@ module Tuktuk
           responses.push [resp, mail]
           mails.delete(mail) # remove it from list, to avoid duplicate delivery
         end
+        logger.info "#{responses.count}/#{total} mails processed on #{domain}."
         break if responses.count == total
       end
 
@@ -214,8 +217,8 @@ module Tuktuk
 
       response = nil
       server = 'localhost' if ENV['DEBUG']
-      smtp = init_connection(server)
-      smtp.start(get_helo_domain(from), nil, nil, nil) do |smtp|
+      socket = init_connection(server)
+      socket.start(get_helo_domain(from), nil, nil, nil) do |smtp|
         response = smtp.send_message(get_raw_mail(mail), from, to)
         logger.info "#{to} - [SENT] #{response.message.strip}"
       end
@@ -230,8 +233,8 @@ module Tuktuk
       timeout_error = nil
 
       server = 'localhost' if ENV['DEBUG']
-      smtp = init_connection(server)
-      smtp.start(get_helo_domain, nil, nil, nil) do |smtp|
+      socket = init_connection(server)
+      socket.start(get_helo_domain, nil, nil, nil) do |smtp|
         mails.each do |mail|
           begin
             resp = smtp.send_message(get_raw_mail(mail), get_from(mail), mail.to)
@@ -246,6 +249,7 @@ module Tuktuk
 
       responses
     rescue => e # SMTPServerBusy, SMTPSyntaxError, SMTPUnsupportedCommand, SMTPUnknownError (unexpected reply code)
+	    logger.error "[SERVER ERROR: #{server}] #{e.message}"
 	    @last_error = e
       responses
     end
