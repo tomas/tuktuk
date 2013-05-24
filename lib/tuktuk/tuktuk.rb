@@ -180,14 +180,14 @@ module Tuktuk
           responses.push [resp, mail]
           mails.delete(mail) # remove it from list, to avoid duplicate delivery
         end
-        logger.info "#{responses.count}/#{total} mails processed on #{domain}."
+        logger.info "#{responses.count}/#{total} mails processed on #{domain}'s MX: #{server}."
         break if responses.count == total
       end
 
       # if we still have emails in queue, mark them with the last error which prevented delivery
       if mails.any? and @last_error
         bounce = Bounce.type(@last_error)
-        logger.info "Mails still in queue. Marking as #{bounce.class}..."
+        logger.info "#{mails.count} mails still pending. Marking as #{bounce.class}..."
         mails.each { |m| responses.push [bounce, m] }
       end
 
@@ -212,7 +212,6 @@ module Tuktuk
     def send_many_now(server, mails)
       logger.info "Delivering #{mails.count} mails at #{server}..."
       responses = {}
-      timeout_error = nil
 
       server = 'localhost' if ENV['DEBUG']
       socket = init_connection(server)
