@@ -182,28 +182,25 @@ module Tuktuk
 
     def lookup_and_deliver_by_domain(domain, mails)
       responses = []
+      total = mails.count
 
       unless servers = smtp_servers_for_domain(domain)
         err = DNSError.new("No MX Records for domain #{domain}")
-        mails.each {|mail| responses.push [err, mail] }
+        mails.each { |mail| responses.push [err, mail] }
         return responses
       end
 
-      last_error = nil
       servers.each do |server|
-        begin
-          send_many_now(server, mails).each do |mail, resp|
-            responses.push [resp, mail]
-          end
-          break
-        rescue => e
-          # logger.error e.message
-          last_error = e
+        send_many_now(server, mails).each do |mail, resp|
+          responses.push [resp, mail]
+          mails.delete(mail) # remove it from list, to avoid duplicate delivery
         end
+        break if responses.count == total
       end
 
-      if last_error # got error at server level, mark all messages with errors
-        mails.each {|mail| responses.push [last_error, mail] }
+      # if we still have emails in queue, mark them with the last error which prevented delivery
+      if mails.any? and @last_error 
+         mails.each { |m| responses.push [last_error, m] }
       end
 
       responses
@@ -234,22 +231,21 @@ module Tuktuk
       smtp = init_connection(server)
       smtp.start(get_helo_domain, nil, nil, nil) do |smtp|
         mails.each do |mail|
-          unless timeout_error
-            begin
-              resp = smtp.send_message(get_raw_mail(mail), get_from(mail), mail.to)
-              smtp.send(:getok, 'RSET') if server['hotmail'] # fix for '503 Sender already specified'
-            rescue Net::SMTPError, EOFError, Timeout::Error => e # may be Net::SMTPFatalError (550 Mailbox not found)
-              # logger.error e.inspect
-              timeout_error = e if e.is_a?(Timeout::Error)
-              resp = e
-            end
+          begin
+            resp = smtp.send_message(get_raw_mail(mail), get_from(mail), mail.to)
+            smtp.send(:getok, 'RSET') if server['hotmail'] # fix for '503 Sender already specified'
+          rescue Net::SMTPFatalError => e # error code 5xx, except for 500, like: 550 Mailbox not found
+            resp = e
           end
-          responses[mail] = timeout_error || resp
+          responses[mail] = resp
           status = resp.is_a?(Net::SMTP::Response) ? 'SENT' : 'ERROR'
           logger.info "#{mail.to} [#{status}] #{responses[mail].message.strip}" # both error and response have this method
         end
       end
 
+      responses
+    rescue => e # SMTPServerBusy, SMTPSyntaxError, SMTPUnsupportedCommand, SMTPUnknownError (unexpected reply code)
+	    @last_error = e
       responses
     end
 
