@@ -10,54 +10,83 @@ response status codes -- like bounces, 5xx -- within your application.
 Plus, it supports DKIM out of the box.
 
 ``` ruby
-  require 'tuktuk'
+require 'tuktuk'
 
-  email = {
-    :from => 'you@username.com',
-    :to => 'user@yoursite.com',
-    :body => 'Hello there',
-    :subject => 'Hiya'
-  }
+message = {
+  :from => 'you@username.com',
+  :to => 'user@yoursite.com',
+  :body => 'Hello there',
+  :subject => 'Hiya'
+}
 
-  Tuktuk.deliver(email)
+response, email = Tuktuk.deliver(message)
 ```
 
-To enable DKIM:
+The `response` is either a Net::SMTP::Response object, or a Bounce exception (HardBounce or SoftBounce, depending on the cause). `email` is a [mail](https://github.com/mikel/mail) object. So, to handle bounces you'd do:
 
 ``` ruby
-  require 'tuktuk'
+[...]
 
-  Tuktuk.options = {
-    :dkim => {
-      :domain => 'yoursite.com',
-      :selector => 'mailer',
-      :private_key => IO.read('ssl/yoursite.com.key')
-    }
-  }
+response, email = Tuktuk.deliver(message)
 
-  email = {
-    :from => 'you@username.com',
-    :to => 'user@yoursite.com',
-    :body => 'Hello there',
-    :subject => 'Hiya'
-  }
-
-  Tuktuk.deliver(email)
+if response.is_a?(Bounce)
+  puts 'Email bounced. Type: ' + response.class.name # => HardBounce or SoftBounce
+else
+  puts 'Email delivered!'
+end
 ```
 
-Additional options:
+With Tuktuk, you can also deliver multiple messages at once. Depending on the max_workers config parameter, Tuktuk will either connect sequentially to the target MX servers, or do it in parallel by spawning threads. You need to pass an array of emails, and you'll receive an array of [response, email] elements, just as above.
 
 ``` ruby
-  Tuktuk.options = {
-    :log_to => 'log/mailer.log',
-    :max_attempts => 5,
-    :retry_sleep => 10,
-    :dkim => { ... }
+messages = [ { ... }, { ... }, { ... }, { ... } ] # array of messages
+
+result = Tuktuk.deliver_many(messages)
+
+result.each do |response, email|
+
+  if response.is_a?(Bounce)
+    puts 'Email bounced. Type: ' + response.class.name
+  else
+    puts 'Email delivered!'
+  end
+
+end
+```
+
+Now, if you want to enable DKIM (and you should):
+
+``` ruby
+require 'tuktuk'
+
+Tuktuk.options = {
+  :dkim => {
+    :domain => 'yoursite.com',
+    :selector => 'mailer',
+    :private_key => IO.read('ssl/yoursite.com.key')
   }
+}
+
+message = { ... }
+
+response, email = Tuktuk.deliver(message)
+```
+
+For DKIM to work, you need to set up a TXT record in your domain's DNS.
+
+Additional Tuktuk options:
+
+``` ruby
+Tuktuk.options = {
+  :log_to => 'log/mailer.log',
+  :helo_domain => 'mydomain.com',
+  :max_workers => 'auto', # spawns a new thread for each domain 
+  :dkim => { ... }
+}
 ```
 
 That's all.
 
 --
 
-(c) 2012 Fork Limited. MIT license.
+(c) 2013 Fork Limited. MIT license.
