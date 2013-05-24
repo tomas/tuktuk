@@ -26,7 +26,7 @@ module Tuktuk
     end
 
     def deliver(message, opts = {})
-      raise 'Please pass a valid message object.' unless messages.is_a?(Hash)
+      raise 'Please pass a valid message object.' unless messages[:to]
       self.options = opts if opts.any?
       mail = Package.new(message)
       response = lookup_and_deliver(mail)
@@ -34,7 +34,7 @@ module Tuktuk
     end
 
     def deliver_many(messages, opts = {})
-      raise 'Please pass an array of messages.' unless messages.is_a?(Array) and messages.any?
+      raise 'Please pass an array of messages.' unless messages.any?
       self.options = opts if opts.any?
       messages_by_domain = reorder_by_domain(messages)
       lookup_and_deliver_many(messages_by_domain)
