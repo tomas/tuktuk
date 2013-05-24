@@ -1,32 +1,32 @@
 class Bounce < RuntimeError
 
   HARD_BOUNCE_CODES = [
+	  501, # Bad address syntax (eg. "i.user.@hotmail.com")
+	  504, # mailbox is disabled
     511, # sorry, no mailbox here by that name (#5.1.1 - chkuser)
+    540, # recipient's email account has been suspended.
     550, # Requested action not taken: mailbox unavailable
-    554, # Recipient address rejected: Policy Rejection- Abuse. Go away.
+    552, # Spam Message Rejected -- Requested mail action aborted: exceeded storage allocation
+    554, # Recipient address rejected: Policy Rejection- Abuse. Go away -- This user doesn't have a yahoo.com account
+    563, # ERR_MSG_REJECT_BLACKLIST, message has blacklisted content and thus I reject it
     571  # Delivery not authorized, message refused
   ]
 
   def self.type(e)
-    if e.is_a? DNSError
-      HardServerBounce.new(e)
-    elsif e.is_a? Net::SMTPFatalError
-      if code = e.to_s[0..2] and HARD_BOUNCE_CODES.include? code.to_i
-        HardMailboxBounce.new(e)
-      else
-        SoftMailboxBounce.new(e)
-      end
+    if e.is_a?(Net::SMTPFatalError) and code = e.to_s[0..2] and HARD_BOUNCE_CODES.include? code.to_i
+      HardBounce.new(e)
     else
-      SoftServerBounce.new(e)
+      SoftBounce.new(e) # either soft mailbox bounce or server bounce
     end
   end
+
+  def code
+		if str = to_s[0..2] and str.gsub(/[^0-9]/, '') != ''
+			str.to_i
+		end
+	end
 
 end
 
 class HardBounce < Bounce; end
 class SoftBounce < Bounce; end
-class HardMailboxBounce < HardBounce; end
-class SoftMailboxBounce < SoftBounce; end
-class HardServerBounce < HardBounce; end
-class SoftServerBounce < SoftBounce; end
-class DNSError < HardServerBounce; end

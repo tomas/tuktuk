@@ -19,8 +19,6 @@ DEFAULTS = {
 
 module Tuktuk
 
-  class Response < Net::SMTP::Response; end
-
   class << self
 
     def cache
@@ -69,21 +67,6 @@ module Tuktuk
       @logger ||= Logger.new(config[:log_to])
     end
 
-    def success(to)
-      logger.info("#{to} - Successfully sent!")
-    end
-
-    def error(mail, to, error, attempt)
-      if attempt < config[:max_attempts] and (error.is_a?(EOFError) || error.is_a?(Timeout::Error))
-        logger.info "#{to} - Got #{error.class.name} error. Retrying after #{config[:retry_sleep]} secs..."
-        sleep config[:retry_sleep]
-        lookup_and_deliver(mail, attempt+1)
-      else
-        logger.error("#{to} - Couldn't send after #{attempt} attempts: #{error.message} [#{error.class.name}]")
-        raise error
-      end
-    end
-
     def get_domain(email_address)
       email_address && email_address.to_s[/@([a-z0-9\._-]+)/i, 1]
     end
@@ -122,7 +105,7 @@ module Tuktuk
 
         domain = get_domain(to)
         unless servers = smtp_servers_for_domain(domain)
-          return DNSError.new("No MX records for domain #{domain}")
+          return HardBounce.new("588 No MX records for domain #{domain}")
         end
 
         last_error = nil
@@ -187,7 +170,7 @@ module Tuktuk
       total = mails.count
 
       unless servers = smtp_servers_for_domain(domain)
-        err = DNSError.new("No MX Records for domain #{domain}")
+        err = HardBounce.new("588 No MX Records for domain #{domain}")
         mails.each { |mail| responses.push [err, mail] }
         return responses
       end
@@ -223,7 +206,6 @@ module Tuktuk
         logger.info "#{to} - [SENT] #{response.message.strip}"
       end
 
-      success(to)
       response
     end
 
