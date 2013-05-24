@@ -7,12 +7,10 @@ require 'work_queue'
 require 'tuktuk/version' unless defined?(Tuktuk::VERSION)
 
 DEFAULTS = {
-  :retry_sleep  => 10,
-  :max_attempts => 3,
+  :helo_domain  => nil,
   :max_workers  => 0,
   :read_timeout => 20,
   :open_timeout => 20,
-  :helo_domain  => nil,
   :verify_ssl   => true,
   :log_to       => nil # $stdout,
 }
