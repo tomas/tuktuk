@@ -3,7 +3,7 @@ require 'dkim'
 require 'logger'
 require 'work_queue'
 
-%w(package cache dns).each { |lib| require "tuktuk/#{lib}" }
+%w(package cache dns bounce).each { |lib| require "tuktuk/#{lib}" }
 require 'tuktuk/version' unless defined?(Tuktuk::VERSION)
 
 DEFAULTS = {
@@ -19,8 +19,7 @@ DEFAULTS = {
 
 module Tuktuk
 
-  class DNSError < RuntimeError; end
-  class MissingFieldsError < ArgumentError; end
+  class Response < Net::SMTP::Response; end
 
   class << self
 
@@ -113,15 +112,16 @@ module Tuktuk
 
     def lookup_and_deliver(mail, attempt = 1)
       if mail.destinations.empty?
-        raise MissingFieldsError, "No destinations found! You need to pass a :to field."
+        raise "No destinations found! You need to pass a :to field."
       end
 
       response = nil
       mail.destinations.each do |to|
 
         domain = get_domain(to)
-        servers = smtp_servers_for_domain(domain)
-        error(mail, to, DNSError.new("No MX records for domain #{domain}"), attempt) && next if servers.empty?
+        unless servers = smtp_servers_for_domain(domain)
+          return DNSError.new("No MX records for domain #{domain}")
+        end
 
         last_error = nil
         servers.each do |server|
@@ -132,7 +132,7 @@ module Tuktuk
             last_error = e
           end
         end
-        error(mail, to, last_error, attempt) if last_error
+        return Bounce.type(last_error) if last_error
       end
       response
     end
@@ -199,8 +199,10 @@ module Tuktuk
       end
 
       # if we still have emails in queue, mark them with the last error which prevented delivery
-      if mails.any? and @last_error 
-         mails.each { |m| responses.push [last_error, m] }
+      if mails.any? and @last_error
+        bounce = Bounce.type(@last_error)
+        logger.info "Mails still in queue. Marking as #{bounce.class}..."
+        mails.each { |m| responses.push [bounce, m] }
       end
 
       responses
@@ -235,11 +237,10 @@ module Tuktuk
             resp = smtp.send_message(get_raw_mail(mail), get_from(mail), mail.to)
             smtp.send(:getok, 'RSET') if server['hotmail'] # fix for '503 Sender already specified'
           rescue Net::SMTPFatalError => e # error code 5xx, except for 500, like: 550 Mailbox not found
-            resp = e
+            resp = Bounce.type(e)
           end
           responses[mail] = resp
-          status = resp.is_a?(Net::SMTP::Response) ? 'SENT' : 'ERROR'
-          logger.info "#{mail.to} [#{status}] #{responses[mail].message.strip}" # both error and response have this method
+          logger.info "#{mail.to} [#{responses[mail].class}] #{responses[mail].message.strip}" # both error and response have this method
         end
       end
 
