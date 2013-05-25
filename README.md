@@ -9,6 +9,9 @@ response status codes -- like bounces, 5xx -- within your application.
 
 Plus, it supports DKIM out of the box.
 
+Delivering mail
+---------------
+
 ``` ruby
 require 'tuktuk'
 
@@ -35,6 +38,9 @@ else
   puts 'Email delivered!'
 end
 ```
+
+Delivering multiple
+-------------------
 
 With Tuktuk, you can also deliver multiple messages at once. Depending on the `max_workers` config parameter, Tuktuk will either connect sequentially to the target domain's MX servers, or do it in parallel by spawning threads. 
 
