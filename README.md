@@ -36,7 +36,11 @@ else
 end
 ```
 
-With Tuktuk, you can also deliver multiple messages at once. Depending on the max_workers config parameter, Tuktuk will either connect sequentially to the target MX servers, or do it in parallel by spawning threads. You need to pass an array of emails, and you'll receive an array of [response, email] elements, just as above.
+With Tuktuk, you can also deliver multiple messages at once. Depending on the `max_workers` config parameter, Tuktuk will either connect sequentially to the target domain's MX servers, or do it in parallel by spawning threads. 
+
+Tuktuk will try to send all emails targeted for a specific domain on the same SMTP session. If a MX server is not responding -- or times out in the middle --, Tuktuk will try to deliver the remaining messages to next MX server, and so on.
+
+To #deliver_many, you need to pass an array of messages, and you'll receive an array of [response, email] elements, just as above.
 
 ``` ruby
 messages = [ { ... }, { ... }, { ... }, { ... } ] # array of messages
