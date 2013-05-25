@@ -64,6 +64,9 @@ result.each do |response, email|
 end
 ```
 
+Options & DKIM
+--------------
+
 Now, if you want to enable DKIM (and you should):
 
 ``` ruby
