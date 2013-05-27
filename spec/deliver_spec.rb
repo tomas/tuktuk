@@ -69,10 +69,10 @@ describe 'deliver many' do
 				@emails = [email, email, email]
 
 				@success = mock('Net::SMTP::Response')
-				@soft_email_bounce = SoftBounce.new('503 Sender already specified')
-				@hard_email_bounce = HardBounce.new('505 Mailbox not found')
-				@soft_server_bounce = SoftBounce.new('Be back in a sec')
-				@hard_server_bounce = HardBounce.new('No MX records found.')
+				@soft_email_bounce  = Tuktuk::SoftBounce.new('503 Sender already specified')
+				@hard_email_bounce  = Tuktuk::HardBounce.new('505 Mailbox not found')
+				@soft_server_bounce = Tuktuk::SoftBounce.new('Be back in a sec')
+				@hard_server_bounce = Tuktuk::HardBounce.new('No MX records found.')
 			end
 
 			describe 'when domain exists' do
@@ -185,8 +185,8 @@ describe 'deliver many' do
 							it 'should not mark first email as bounced' do
 								Tuktuk.should_receive(:send_many_now).and_return([@first], [], [])
 								responses = Tuktuk.send(:lookup_and_deliver_by_domain, 'domain.com', @emails)
-								responses[1][0].should be_a(Bounce) if responses[1]
-								responses[0][0].should_not be_a(Bounce)
+								responses[1][0].should be_a(Tuktuk::Bounce) if responses[1]
+								responses[0][0].should_not be_a(Tuktuk::Bounce)
 							end
 							
 						end

@@ -4,6 +4,8 @@ class Mail::Message
   attr_accessor :array_index
 end
 
+module Tuktuk 
+
 module Package
 
   class << self
@@ -58,5 +60,7 @@ module Package
     end
 
   end
+
+end
 
 end

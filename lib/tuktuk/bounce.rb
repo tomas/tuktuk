@@ -1,3 +1,5 @@
+module Tuktuk
+
 class Bounce < RuntimeError
 
   HARD_BOUNCE_CODES = [
@@ -30,3 +32,5 @@ end
 
 class HardBounce < Bounce; end
 class SoftBounce < Bounce; end
+
+end

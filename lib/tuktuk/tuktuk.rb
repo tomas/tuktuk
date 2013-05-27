@@ -3,6 +3,8 @@ require 'dkim'
 require 'logger'
 require 'work_queue'
 
+module Tuktuk; end
+
 %w(package cache dns bounce).each { |lib| require "tuktuk/#{lib}" }
 require 'tuktuk/version' unless defined?(Tuktuk::VERSION)
 

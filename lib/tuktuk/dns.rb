@@ -4,6 +4,8 @@ rescue
   require 'net/dns/resolve'
 end
 
+module Tuktuk
+
 module DNS
 
   class << self
@@ -35,5 +37,7 @@ module DNS
     end
 
   end
+
+end
 
 end

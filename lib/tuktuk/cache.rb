@@ -1,3 +1,5 @@
+module Tuktuk
+
 class Cache
 
   attr_reader :store, :max_keys
@@ -24,5 +26,7 @@ class Cache
   def show
     store.each { |k,v| puts "#{k} -> #{v}" }; nil
   end
+
+end
 
 end
