@@ -34,7 +34,7 @@ module Tuktuk
     end
 
 		# same as deliver but raises error. used by ActionMailer
-		def self.deliver!(mail)
+		def deliver!(mail)
 			@logger = Rails.logger if defined?(Rails) and !config[:log_to]
 			resp, email = deliver(mail)
 			raise resp if resp.is_a?(Exception)

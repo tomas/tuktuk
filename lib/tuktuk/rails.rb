@@ -6,7 +6,7 @@ if ActionMailer::Base.respond_to?(:add_delivery_method)
 
 		# called from ActionMailer to initialize deliveries
 		def self.new(options = {})
-			options = options
+			self.options = options
 			self
 		end
 
