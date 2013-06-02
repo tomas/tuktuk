@@ -9,10 +9,15 @@ module Tuktuk
 module Package
 
   class << self
+	
+		def build(message, index = nil)
+			mail = message.is_a?(Hash) ? new(message) : message.is_a?(Mail) ? message : Mail.read_from_string(message.to_s)
+			mail.array_index = index if index
+			mail
+		end
 
-    def new(message, index = nil)
+    def new(message)
       mail = message[:html_body] ? mixed(message) : plain(message)
-      mail.array_index = index if index
       mail.charset = 'UTF-8'
 
       mail['In-Reply-To'] = message[:in_reply_to] if message[:in_reply_to]
