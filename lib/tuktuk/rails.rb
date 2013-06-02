@@ -4,12 +4,7 @@ if ActionMailer::Base.respond_to?(:add_delivery_method)
 
 	module Tuktuk
 
-		def self.deliver!(mail)
-			@logger = Rails.logger unless config[:log_to]
-			resp, email = deliver(mail)
-			raise resp if resp.is_a?(Exception)
-		end
-
+		# called from ActionMailer to initialize deliveries
 		def self.new(options = {})
 			options = options
 			self
