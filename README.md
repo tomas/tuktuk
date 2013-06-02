@@ -93,12 +93,43 @@ Additional Tuktuk options:
 Tuktuk.options = {
   :log_to => 'log/mailer.log',
   :helo_domain => 'mydomain.com',
-  :max_workers => 'auto', # spawns a new thread for each domain 
+  :max_workers => 'auto', # spawns a new thread for each domain, when delivering multiple
   :dkim => { ... }
 }
 ```
 
-That's all.
+Using with Rails
+----------------
+
+Tuktuk comes with ActionMailer support out of the box. In your environment.rb or environments/{env}.rb:
+
+``` ruby
+require 'tuktuk/rails'
+
+[...]
+
+config.action_mailer.delivery_method = :tuktuk
+
+```
+
+Since Tuktuk delivers email directly to the user's MX servers, it's probably a good idea to set `config.action_mailer.raise_delivery_errors` to true. That way you can actually know if an email couldn't make it to its destination.
+
+When used with ActionMailer, you can pass options to Tuktuk also when setting the delivery method, like this:
+
+``` ruby
+
+options 
+
+config.action_mailer.delivery_method = :tuktuk, {
+  :log_to => 'log/mailer.log', # when not set, Tuktuk will use Rails.logger
+  :dkim => {
+    :domain => 'yoursite.com',
+    :selector => 'mailer',
+    :private_key => IO.read('ssl/yoursite.com.key')
+  }
+}
+
+```
 
 --
 
