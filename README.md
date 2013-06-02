@@ -114,11 +114,13 @@ config.action_mailer.delivery_method = :tuktuk
 
 Since Tuktuk delivers email directly to the user's MX servers, it's probably a good idea to set `config.action_mailer.raise_delivery_errors` to true. That way you can actually know if an email couldn't make it to its destination.
 
-When used with ActionMailer, you can pass options to Tuktuk also when setting the delivery method, like this:
+When used with ActionMailer, you can pass options using ActionMailer's interface, like this:
 
 ``` ruby
 
-config.action_mailer.delivery_method = :tuktuk, {
+config.action_mailer.delivery_method = :tuktuk
+
+config.action_mailer.tuktuk_settings = {
   :log_to => 'log/mailer.log', # when not set, Tuktuk will use Rails.logger
   :dkim => {
     :domain => 'yoursite.com',
