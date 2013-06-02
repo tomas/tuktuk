@@ -109,7 +109,6 @@ require 'tuktuk/rails'
 [...]
 
 config.action_mailer.delivery_method = :tuktuk
-
 ```
 
 Since Tuktuk delivers email directly to the user's MX servers, it's probably a good idea to set `config.action_mailer.raise_delivery_errors` to true. That way you can actually know if an email couldn't make it to its destination.
@@ -128,7 +127,6 @@ config.action_mailer.tuktuk_settings = {
     :private_key => IO.read('ssl/yoursite.com.key')
   }
 }
-
 ```
 
 --
