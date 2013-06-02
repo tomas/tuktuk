@@ -26,9 +26,9 @@ module Tuktuk
     end
 
     def deliver(message, opts = {})
-      raise 'Please pass a valid message object.' unless messages[:to]
+      # raise 'Please pass a valid message object.' unless message[:to]
       self.options = opts if opts.any?
-      mail = Package.new(message)
+      mail = Package.build(message)
       response = lookup_and_deliver(mail)
       return response, mail
     end
@@ -74,7 +74,7 @@ module Tuktuk
     def reorder_by_domain(array)
       hash = {}
       array.each_with_index do |message, i|
-        mail = Package.new(message, i)
+        mail = Package.build(message, i)
         raise "Invalid destination count: #{mail.destinations.count}" if mail.destinations.count != 1
 
         if to = mail.destinations.first and domain = get_domain(to)
