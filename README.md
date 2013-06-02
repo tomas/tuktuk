@@ -118,8 +118,6 @@ When used with ActionMailer, you can pass options to Tuktuk also when setting th
 
 ``` ruby
 
-options 
-
 config.action_mailer.delivery_method = :tuktuk, {
   :log_to => 'log/mailer.log', # when not set, Tuktuk will use Rails.logger
   :dkim => {
