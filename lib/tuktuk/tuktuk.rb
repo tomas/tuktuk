@@ -14,6 +14,7 @@ DEFAULTS = {
   :read_timeout => 20,
   :open_timeout => 20,
   :verify_ssl   => true,
+  :debug        => false, 
   :log_to       => nil # $stdout,
 }
 
@@ -206,7 +207,6 @@ module Tuktuk
       from = get_from(mail)
 
       response = nil
-      server = 'localhost' if ENV['DEBUG']
       socket = init_connection(server)
       socket.start(get_helo_domain(from), nil, nil, nil) do |smtp|
         response = smtp.send_message(get_raw_mail(mail), from, to)
@@ -220,7 +220,6 @@ module Tuktuk
       logger.info "Delivering #{mails.count} mails at #{server}..."
       responses = {}
 
-      server = 'localhost' if ENV['DEBUG']
       socket = init_connection(server)
       socket.start(get_helo_domain, nil, nil, nil) do |smtp|
         mails.each do |mail|
@@ -259,6 +258,7 @@ module Tuktuk
       context.verify_mode = config[:verify_ssl] ?
         OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
 
+      server = 'localhost' if config[:debug]
       smtp = Net::SMTP.new(server, nil)
       smtp.enable_starttls_auto(context)
       smtp.read_timeout = config[:read_timeout] if config[:read_timeout]
