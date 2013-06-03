@@ -237,8 +237,8 @@ module Tuktuk
 
       responses
     rescue => e # SMTPServerBusy, SMTPSyntaxError, SMTPUnsupportedCommand, SMTPUnknownError (unexpected reply code)
-	    logger.error "[SERVER ERROR: #{server}] #{e.message}"
-	    @last_error = e
+      logger.error "[SERVER ERROR: #{server}] #{e.message}"
+      @last_error = e
       responses
     end
 
