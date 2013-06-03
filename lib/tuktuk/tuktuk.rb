@@ -33,12 +33,12 @@ module Tuktuk
       return response, mail
     end
 
-		# same as deliver but raises error. used by ActionMailer
-		def deliver!(mail)
-			@logger = Rails.logger if defined?(Rails) and !config[:log_to]
-			resp, email = deliver(mail)
-			raise resp if resp.is_a?(Exception)
-		end
+    # same as deliver but raises error. used by ActionMailer
+    def deliver!(mail)
+      @logger = Rails.logger if defined?(Rails) and !config[:log_to]
+      resp, email = deliver(mail)
+      raise resp if resp.is_a?(Exception)
+    end
 
     def deliver_many(messages, opts = {})
       raise 'Please pass an array of messages.' unless messages.any?

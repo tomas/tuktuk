@@ -1,25 +1,30 @@
 if ActionMailer::Base.respond_to?(:add_delivery_method)
-	
-	ActionMailer::Base.add_delivery_method :tuktuk, Tuktuk
+  
+  ActionMailer::Base.add_delivery_method :tuktuk, Tuktuk
 
-	module Tuktuk
+  module Tuktuk
 
-		# called from ActionMailer to initialize deliveries
-		def self.new(options = {})
-			self.options = options
-			self
-		end
+    def self.new(options)
+      self.options = options
+      self
+    end
 
-	end
+  end
 
 else
+  
+  require 'tuktuk'
 
-	class ActionMailer::Base
+  class ActionMailer::Base
 
-		def perform_delivery_tuktuk(mail)
-			Tuktuk.deliver!(mail)
-	  end
+    def self.tuktuk_settings=(opts)
+      Tuktuk.options = opts
+    end
 
-	end
-	
+    def perform_delivery_tuktuk(mail)
+      Tuktuk.deliver!(mail)
+    end
+
+  end
+  
 end
