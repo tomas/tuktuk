@@ -3,8 +3,8 @@ module Tuktuk
 class Bounce < RuntimeError
 
   HARD_BOUNCE_CODES = [
-	  501, # Bad address syntax (eg. "i.user.@hotmail.com")
-	  504, # mailbox is disabled
+    501, # Bad address syntax (eg. "i.user.@hotmail.com")
+    504, # mailbox is disabled
     511, # sorry, no mailbox here by that name (#5.1.1 - chkuser)
     540, # recipient's email account has been suspended.
     550, # Requested action not taken: mailbox unavailable
@@ -23,10 +23,10 @@ class Bounce < RuntimeError
   end
 
   def code
-		if str = to_s[0..2] and str.gsub(/[^0-9]/, '') != ''
-			str.to_i
-		end
-	end
+    if str = to_s[0..2] and str.gsub(/[^0-9]/, '') != ''
+      str.to_i
+    end
+  end
 
 end
 
