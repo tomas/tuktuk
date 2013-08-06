@@ -32,7 +32,7 @@ The `response` is either a Net::SMTP::Response object, or a Bounce exception (Ha
 
 response, email = Tuktuk.deliver(message)
 
-if response.is_a?(Bounce)
+if response.is_a?(Tuktuk::Bounce)
   puts 'Email bounced. Type: ' + response.class.name # => HardBounce or SoftBounce
 else
   puts 'Email delivered!'
@@ -55,7 +55,7 @@ result = Tuktuk.deliver_many(messages)
 
 result.each do |response, email|
 
-  if response.is_a?(Bounce)
+  if response.is_a?(Tuktuk::Bounce)
     puts 'Email bounced. Type: ' + response.class.name
   else
     puts 'Email delivered!'
