@@ -97,7 +97,7 @@ Tuktuk.options = {
   :open_timeout => 20,    # max seconds to wait for opening a connection
   :read_timeout => 20,    # 20 seconds to wait for a response, once connected
   :verify_ssl   => true,  # whether to skip SSL keys verification or not
-  :debug        => false, # prints additional debug messages to log
+  :debug        => false, # connects and delivers email to localhost, instead of real target server. CAUTION!
   :dkim => { ... }
 }
 ```
