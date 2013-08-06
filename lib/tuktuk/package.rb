@@ -31,7 +31,7 @@ module Package
         mail['Errors-To']   = message[:return_path]
       end
       
-      if message[:attachments].any?
+      if (message[:attachments] || []).any?
         message[:attachments].each do |file|
           mail.add_file(file)
         end
