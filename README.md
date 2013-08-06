@@ -91,7 +91,7 @@ All available options, with their defaults:
 
 ``` ruby
 Tuktuk.options = {
-  :log_to       => nil,   # e.g. log/mailer.log
+  :log_to       => nil,   # e.g. log/mailer.log or STDOUT
   :helo_domain  => nil,   # your server's domain goes here
   :max_workers  => 0,     # controls number of threads for delivering_many emails (read below)
   :open_timeout => 20,    # max seconds to wait for opening a connection
