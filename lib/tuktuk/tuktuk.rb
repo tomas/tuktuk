@@ -258,7 +258,10 @@ module Tuktuk
       context.verify_mode = config[:verify_ssl] ?
         OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
 
-      server = 'localhost' if config[:debug]
+      if config[:debug]
+        logger.warn "Debug option enabled. Connecting to localhost!"
+        server = 'localhost'
+      end
       smtp = Net::SMTP.new(server, nil)
       smtp.enable_starttls_auto(context)
       smtp.read_timeout = config[:read_timeout] if config[:read_timeout]
