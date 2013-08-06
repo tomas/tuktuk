@@ -1,8 +1,8 @@
 Tuktuk - SMTP client for Ruby
 =============================
 
-Unlike Pony (which is friggin' awesome by the way) Tuktuk does not rely on 
-`sendmail` or a separate SMTP server in order to send email. Tuktuk looks up the
+Unlike famous ol' Pony gem (which is friggin' awesome by the way), Tuktuk does not rely on 
+`sendmail` or a separate SMTP server in order to deliver email. Tuktuk looks up the
 MX servers of the destination address and connects directly using Net::SMTP. 
 This way you don't need to install Exim or Postfix and you can actually handle 
 response status codes -- like bounces, 5xx -- within your application. 
@@ -87,16 +87,24 @@ response, email = Tuktuk.deliver(message)
 
 For DKIM to work, you need to set up a TXT record in your domain's DNS.
 
-Additional Tuktuk options:
+All available options, with their defaults:
 
 ``` ruby
 Tuktuk.options = {
-  :log_to => 'log/mailer.log',
-  :helo_domain => 'mydomain.com',
-  :max_workers => 'auto', # spawns a new thread for each domain, when delivering multiple
+  :log_to       => nil,   # e.g. log/mailer.log
+  :helo_domain  => nil,   # your server's domain goes here
+  :max_workers  => 0,     # controls number of threads for delivering_many emails (read below)
+  :open_timeout => 20,    # max seconds to wait for opening a connection
+  :read_timeout => 20,    # 20 seconds to wait for a response, once connected
+  :verify_ssl   => true,  # whether to skip SSL keys verification or not
+  :debug        => false, # prints additional debug messages to log
   :dkim => { ... }
 }
 ```
+
+You can set the `max_threads` option to `auto`, which will spawn the necessary threads to connect in paralell to all target MX servers when delivering multiple messages. When set to `0`, these batches will be delivered sequentially.
+
+In other words, if you have three emails targeted to Gmail users and two for Hotmail users, using `auto` Tuktuk will spawn two threads and connect to both servers at once. Using `0` will have email deliveried to one host and then the other.
 
 Using with Rails
 ----------------
