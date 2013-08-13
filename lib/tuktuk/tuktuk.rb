@@ -14,7 +14,7 @@ DEFAULTS = {
   :read_timeout => 20,
   :open_timeout => 20,
   :verify_ssl   => true,
-  :debug        => false, 
+  :debug        => false,
   :log_to       => nil # $stdout,
 }
 
@@ -42,7 +42,7 @@ module Tuktuk
     end
 
     def deliver_many(messages, opts = {})
-      raise 'Please pass an array of messages.' unless messages.any?
+      raise ArgumentError, "Not an array of messages: #{messages.inspect}" unless messages.any?
       self.options = opts if opts.any?
       messages_by_domain = reorder_by_domain(messages)
       lookup_and_deliver_many(messages_by_domain)
@@ -262,6 +262,7 @@ module Tuktuk
         logger.warn "Debug option enabled. Connecting to localhost!"
         server = 'localhost'
       end
+
       smtp = Net::SMTP.new(server, nil)
       smtp.enable_starttls_auto(context)
       smtp.read_timeout = config[:read_timeout] if config[:read_timeout]
