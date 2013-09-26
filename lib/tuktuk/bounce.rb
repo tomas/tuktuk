@@ -18,7 +18,7 @@ class Bounce < RuntimeError
     if e.is_a?(Net::SMTPFatalError) and code = e.to_s[0..2] and HARD_BOUNCE_CODES.include? code.to_i
       HardBounce.new(e)
     else
-      SoftBounce.new(e) # either soft mailbox bounce or server bounce
+      SoftBounce.new(e) # either soft mailbox bounce, timeout or server bounce
     end
   end
 

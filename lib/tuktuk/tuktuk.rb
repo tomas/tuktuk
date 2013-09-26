@@ -121,7 +121,7 @@ module Tuktuk
           begin
             response = send_now(mail, server, to)
             break
-          rescue => e
+          rescue Exception => e # explicitly rescue Exception so we catch Timeout:Error's too
             last_error = e
           end
         end
