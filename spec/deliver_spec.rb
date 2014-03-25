@@ -8,8 +8,8 @@ end
 describe 'deliver many' do
 
   before(:each) do
-    @mock_smtp = mock('Net::SMTP')
-    Net::SMTP.stub!(:new).and_return(@mock_smtp)
+    @mock_smtp = double('Net::SMTP')
+    Net::SMTP.stub(:new).and_return(@mock_smtp)
   end
 
   describe 'when no emails are passed' do
@@ -68,7 +68,7 @@ describe 'deliver many' do
         @mock_smtp.stub(:start).and_yield('foo')
         @emails = [email, email, email]
 
-        @success = mock('Net::SMTP::Response')
+        @success = double('Net::SMTP::Response')
         @soft_email_bounce  = Tuktuk::SoftBounce.new('503 Sender already specified')
         @hard_email_bounce  = Tuktuk::HardBounce.new('505 Mailbox not found')
         @soft_server_bounce = Tuktuk::SoftBounce.new('Be back in a sec')
@@ -136,9 +136,12 @@ describe 'deliver many' do
 
             it 'does not raise error' do
               Tuktuk.should_receive(:init_connection).once.with('mx1.domain.com').and_raise('Unable to connect.')
-              lambda do
+              Tuktuk.should_receive(:init_connection).once.with('mx2.domain.com').and_raise('Unable to connect.')
+              Tuktuk.should_receive(:init_connection).once.with('mx3.domain.com').and_raise('Unable to connect.')
+              # Tuktuk.should_receive(:init_connection).once.and_raise('Unable to connect.')
+              expect do
                 Tuktuk.send(:lookup_and_deliver_by_domain, 'domain.com', @emails)
-              end.should_not raise_error(RuntimeError)
+              end.not_to raise_error # (RuntimeError)
             end
 
             it 'returns empty responses' do
