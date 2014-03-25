@@ -16,9 +16,9 @@ Delivering mail
 require 'tuktuk'
 
 message = {
-  :from => 'you@username.com',
-  :to => 'user@yoursite.com',
-  :body => 'Hello there',
+  :from    => 'you@username.com',
+  :to      => 'user@yoursite.com',
+  :body    => 'Hello there',
   :subject => 'Hiya'
 }
 
@@ -74,8 +74,8 @@ require 'tuktuk'
 
 Tuktuk.options = {
   :dkim => {
-    :domain => 'yoursite.com',
-    :selector => 'mailer',
+    :domain      => 'yoursite.com',
+    :selector    => 'mailer',
     :private_key => IO.read('ssl/yoursite.com.key')
   }
 }
@@ -130,8 +130,8 @@ config.action_mailer.delivery_method = :tuktuk
 config.action_mailer.tuktuk_settings = {
   :log_to => 'log/mailer.log', # when not set, Tuktuk will use Rails.logger
   :dkim => {
-    :domain => 'yoursite.com',
-    :selector => 'mailer',
+    :domain      => 'yoursite.com',
+    :selector    => 'mailer',
     :private_key => IO.read('ssl/yoursite.com.key')
   }
 }
