@@ -137,6 +137,10 @@ config.action_mailer.tuktuk_settings = {
 }
 ```
 
---
+# Contributions
 
-(c) 2013 Fork Limited. MIT license.
+You're more than welcome. Send a pull request, including tests, and make sure you don't break anything. That's it.
+
+# Copyright
+
+(c) Fork Limited. MIT license.
