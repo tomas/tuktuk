@@ -20,10 +20,11 @@ module Package
       mail = message[:html_body] ? mixed(message) : plain(message)
       mail.charset = 'UTF-8'
 
-      mail['In-Reply-To']   = message[:in_reply_to] if message[:in_reply_to]
-      mail['List-Archive']  = message[:list_archive] if message[:list_archive]
-      mail['List-Id']       = message[:list_id] if message[:list_id]
-      mail['X-Mailer']      = "Tuktuk SMTP v#{Tuktuk::VERSION}"
+      mail['In-Reply-To']      = message[:in_reply_to] if message[:in_reply_to]
+      mail['List-Unsubscribe'] = message[:list_unsubscribe] if message[:list_unsubscribe]
+      mail['List-Archive']     = message[:list_archive] if message[:list_archive]
+      mail['List-Id']          = message[:list_id] if message[:list_id]
+      mail['X-Mailer']         = "Tuktuk SMTP v#{Tuktuk::VERSION}"
 
       if message[:return_path]
         mail['Return-Path'] = message[:return_path]
