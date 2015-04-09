@@ -85,7 +85,7 @@ message = { ... }
 response, email = Tuktuk.deliver(message)
 ```
 
-For DKIM to work, you need to set up some TXT records in your domain's DNS. You can use [this tool](http://www.socketlabs.com/domainkey-dkim-generation-wizard/) to generate the key. You should also create [SPF records](http://www.spfwizard.net/) if you haven't.
+For DKIM to work, you need to set up some TXT records in your domain's DNS. You can use [this tool](http://www.socketlabs.com/domainkey-dkim-generation-wizard/) to generate the key. You should also create [SPF records](http://www.spfwizard.net/) if you haven't. Then use [this tool](https://www.mail-tester.com/spf-dkim-check) to verify that they're both correctly in place.
 
 All available options, with their defaults:
 
