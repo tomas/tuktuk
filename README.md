@@ -39,6 +39,8 @@ else
 end
 ```
 
+You can also call `Tuktuk.deliver!` (with a trailing `!`), in which case it will automatically raise an exception if the response was either a HardBounce or SoftBounce. This is useful when running in the background via Resque or Sidekiq, because it makes you aware of which emails are not getting through, and you can requeue those jobs to have them redelivered.
+
 Delivering multiple
 -------------------
 
