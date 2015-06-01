@@ -38,7 +38,11 @@ module Tuktuk
     def deliver!(mail)
       @logger = Rails.logger if defined?(Rails) and !config[:log_to]
       resp, email = deliver(mail)
-      raise resp if resp.is_a?(Exception)
+      if resp.is_a?(Exception)
+        raise resp
+      else
+        return resp, email
+      end
     end
 
     def deliver_many(messages, opts = {})
