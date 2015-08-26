@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+
+require_relative '../lib/tuktuk'
+require 'optparse'
+
+def missing_keys?(opts)
+  [:body, :from, :subject, :to] - opts.keys
+end
+
+options = {}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: tuktuk [options]"
+
+  opts.on("-f", "--from your@email.com", String, "From email") do |val|
+    options[:from] = val
+  end
+
+  opts.on("-t", "--to email1,email2", Array, "List of destination emails") do |list|
+    options[:to] = list
+  end
+
+  opts.on("-s","--subject 'This is a test.'", String, "Email subject") do |subject|
+    options[:subject] = subject
+  end
+
+  opts.on("-b", "--body 'Hello there.'", String, "Email body") do |body|
+    options[:body] = body
+  end
+
+  opts.on_tail("-h", "--help", "Show this message") do
+    puts opts
+    exit
+  end
+
+  opts.on_tail("-v", "--version", "Show version") do
+    puts Tuktuk::VERSION
+    exit
+  end
+
+end.parse!
+
+if list = missing_keys?(options) and list.any?
+  puts "Missing option(s): #{list.join(', ')}"
+  puts "Run with -h or --help for all options."
+  exit
+end
+
+Tuktuk.options = {
+  :max_workers => 0,
+  :log_to => STDOUT
+}
+
+response, email = Tuktuk.deliver(options)
+
+if response.is_a?(Tuktuk::Bounce)
+  puts 'Email bounced. Type: ' + response.class.name # => HardBounce or SoftBounce
+  puts response.message
+else
+  puts 'Email delivered!'
+end

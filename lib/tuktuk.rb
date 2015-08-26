@@ -1,1 +1,1 @@
-require 'tuktuk/tuktuk'
+require File.expand_path(File.dirname(__FILE__)) + '/tuktuk/tuktuk'

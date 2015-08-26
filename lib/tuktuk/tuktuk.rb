@@ -5,8 +5,8 @@ require 'work_queue'
 
 module Tuktuk; end
 
-%w(package cache dns bounce).each { |lib| require "tuktuk/#{lib}" }
-require 'tuktuk/version' unless defined?(Tuktuk::VERSION)
+%w(package cache dns bounce).each { |lib| require_relative "./#{lib}" }
+require_relative './version' unless defined?(Tuktuk::VERSION)
 
 DEFAULTS = {
   :helo_domain  => nil,
@@ -116,6 +116,8 @@ module Tuktuk
       mail.destinations.each do |to|
 
         domain = get_domain(to)
+        raise "Empty domain: #{domain}" if domain.blank?
+
         unless servers = smtp_servers_for_domain(domain)
           return HardBounce.new("588 No MX records for domain #{domain}")
         end
