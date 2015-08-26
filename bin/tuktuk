@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require_relative '../lib/tuktuk'
+require File.expand_path(File.dirname(__FILE__)) + '/../lib/tuktuk'
 require 'optparse'
 
 def missing_keys?(opts)

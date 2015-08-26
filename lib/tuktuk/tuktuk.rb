@@ -5,8 +5,10 @@ require 'work_queue'
 
 module Tuktuk; end
 
-%w(package cache dns bounce).each { |lib| require_relative "./#{lib}" }
-require_relative './version' unless defined?(Tuktuk::VERSION)
+this_path = File.expand_path(File.dirname(__FILE__))
+
+%w(package cache dns bounce).each { |lib| require this_path + "/#{lib}" }
+require_relative this_path + '/version' unless defined?(Tuktuk::VERSION)
 
 DEFAULTS = {
   :helo_domain  => nil,
