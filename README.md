@@ -25,6 +25,21 @@ message = {
 response, email = Tuktuk.deliver(message)
 ```
 
+HTML (multipart) emails are supported, of course. 
+
+``` ruby
+
+message = {
+  :from      => 'you@username.com',
+  :to        => 'user@yoursite.com',
+  :body      => 'Hello there',
+  :html_body => '<h1 style="color: red">Hello there</h1>',
+  :subject   => 'Hiya in colours'
+}
+
+response, email = Tuktuk.deliver(message)
+```
+
 The `response` is either a Net::SMTP::Response object, or a Bounce exception (HardBounce or SoftBounce, depending on the cause). `email` is a [mail](https://github.com/mikel/mail) object. So, to handle bounces you'd do:
 
 ``` ruby
@@ -39,7 +54,7 @@ else
 end
 ```
 
-You can also call `Tuktuk.deliver!` (with a trailing `!`), in which case it will automatically raise an exception if the response was either a HardBounce or SoftBounce. This is useful when running in the background via Resque or Sidekiq, because it makes you aware of which emails are not getting through, and you can requeue those jobs to have them redelivered.
+You can also call `Tuktuk.deliver!` (with a trailing `!`), in which case it will automatically raise an exception if the response was either a `HardBounce` or a `SoftBounce`. This is useful when running in the background via Resque or Sidekiq, because it makes you aware of which emails are not getting through, and you can requeue those jobs to have them redelivered.
 
 Delivering multiple
 -------------------
@@ -69,7 +84,7 @@ end
 Options & DKIM
 --------------
 
-Now, if you want to enable DKIM (and you should):
+Now, if you want to enable DKIM (and you _should_):
 
 ``` ruby
 require 'tuktuk'
