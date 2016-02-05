@@ -56,6 +56,36 @@ end
 
 You can also call `Tuktuk.deliver!` (with a trailing `!`), in which case it will automatically raise an exception if the response was either a `HardBounce` or a `SoftBounce`. This is useful when running in the background via Resque or Sidekiq, because it makes you aware of which emails are not getting through, and you can requeue those jobs to have them redelivered.
 
+Email options
+-------------
+
+Attachments are supported, as you'd expect. 
+
+``` rb
+message = {
+  :from             => 'john@lennon.com',
+  :to               => 'paul@maccartney.com',
+  :subject          => 'Question for you',
+  :body             => 'How do you sleep?',
+  :reply_to         => '<haha@foobar.com>',
+  :return_path      => 'bounces@server.com',
+  :attachments      => [ # an array of files
+    File.read('/home/john/walrus.png') 
+  ]
+}
+```
+
+These are the email headers Tuktuk is able to set for you. Just pass them as part of the hash and they'll be automatically set.
+
+```
+  :return_path      => '<return-path@host.com>', # will actually set three headers, Return-Path, Bounces-To and Errors-To
+  :reply_to         => '<reply@to.com>',
+  :in_reply_to      => '<inreply@to.com>',
+  :list_unsubscribe => '<http://server.com/path>, <mailto:somewhere@server.com>',
+  :list_archive     => '<http://server.com/list/archive>',
+  :list_id          => '<mail-list.foobar.com>'
+```
+
 Delivering multiple
 -------------------
 
