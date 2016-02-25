@@ -69,10 +69,20 @@ message = {
   :body             => 'How do you sleep?',
   :reply_to         => '<haha@foobar.com>',
   :return_path      => 'bounces@server.com',
-  :attachments      => [ # an array of files
-    File.read('/home/john/walrus.png') 
+  :attachments      => [ '/home/john/walrus.png' ]
   ]
 }
+```
+
+Attachments can be either a path to a file or a hash containing the file's name and content, like this:
+
+``` rb
+  message = {
+    ...
+    :attachments    => [ 
+      { :filename => 'walrus.png', :content => File.read('/home/john/walrus.png') } 
+    ]
+  }
 ```
 
 These are the email headers Tuktuk is able to set for you. Just pass them as part of the hash and they'll be automatically set.
