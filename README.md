@@ -79,7 +79,7 @@ Attachments can be either a path to a file or a hash containing the file's name 
 ``` rb
   message = {
     ...
-    :attachments    => [ 
+    :attachments => [ 
       { :filename => 'walrus.png', :content => File.read('/home/john/walrus.png') } 
     ]
   }
