@@ -70,7 +70,6 @@ message = {
   :reply_to         => '<haha@foobar.com>',
   :return_path      => 'bounces@server.com',
   :attachments      => [ '/home/john/walrus.png' ]
-  ]
 }
 ```
 
