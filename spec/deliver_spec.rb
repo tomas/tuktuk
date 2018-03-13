@@ -169,7 +169,7 @@ describe 'deliver many' do
             it 'does not try to send that same email to second server' do
               Tuktuk.should_receive(:send_many_now).once.with('mx1.domain.com', @emails).and_return([@first])
               last_two_emails = @emails.last(2)
-              last_two_emails.include?(@emails.first).should be_false
+              last_two_emails.include?(@emails.first).should be false
               Tuktuk.should_receive(:send_many_now).once.with('mx2.domain.com', last_two_emails).and_return(@last_two)
               Tuktuk.should_not_receive(:send_many_now).with('mx3.domain.com')
               Tuktuk.send(:lookup_and_deliver_by_domain, 'domain.com', @emails)

@@ -118,7 +118,7 @@ module Tuktuk
       mail.destinations.each do |to|
 
         domain = get_domain(to)
-        raise "Empty domain: #{domain}" if domain.blank?
+        raise "Empty domain: #{domain}" if domain.to_s.strip == ''
 
         unless servers = smtp_servers_for_domain(domain)
           return HardBounce.new("588 No MX records for domain #{domain}")
