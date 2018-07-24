@@ -50,7 +50,7 @@ response, email = Tuktuk.deliver(message)
 if response.is_a?(Tuktuk::Bounce)
   puts 'Email bounced. Type: ' + response.class.name # => HardBounce or SoftBounce
 else
-  puts 'Email delivered!'
+  puts 'Email delivered! Server responded: ' + response.message
 end
 ```
 
