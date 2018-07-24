@@ -27,6 +27,10 @@ class Bounce < RuntimeError
       str.to_i
     end
   end
+  
+  def status
+    code
+  end
 
 end
 
