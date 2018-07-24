@@ -40,7 +40,7 @@ message = {
 response, email = Tuktuk.deliver(message)
 ```
 
-The `response` is either a Net::SMTP::Response object, or a Bounce exception (HardBounce or SoftBounce, depending on the cause). `email` is a [mail](https://github.com/mikel/mail) object. So, to handle bounces you'd do:
+The `response` is either a [Net::SMTP::Response](http://ruby-doc.org/stdlib-2.0.0/libdoc/net/smtp/rdoc/Net/SMTP/Response.html) object, or a Bounce exception (HardBounce or SoftBounce, depending on the cause). `email` is a [mail](https://github.com/mikel/mail) object. So, to handle bounces you'd do:
 
 ``` ruby
 [...]
