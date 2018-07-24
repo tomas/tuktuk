@@ -160,7 +160,7 @@ Tuktuk.options = {
 
 You can set the `max_workers` option to `auto`, which will spawn the necessary threads to connect in paralell to all target MX servers when delivering multiple messages. When set to `0`, these batches will be delivered sequentially.
 
-In other words, if you have three emails targeted to Gmail users and two for Hotmail users, using `auto` Tuktuk will spawn two threads and connect to both servers at once. Using `0` will have email deliveried to one host and then the other.
+In other words, if you have three emails targeted to Gmail users and two for Hotmail users, using `auto` Tuktuk will spawn two threads and connect to both servers at once. Using `0` will have your emails delivered to one host, and then the other.
 
 Using with Rails
 ----------------
