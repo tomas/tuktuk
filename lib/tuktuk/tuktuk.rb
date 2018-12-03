@@ -266,12 +266,18 @@ module Tuktuk
       context.verify_mode = config[:verify_ssl] ?
         OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
 
+      port = nil
       if config[:debug]
-        logger.warn "Debug option enabled. Connecting to localhost!"
-        server = 'localhost'
+        if config[:debug].is_a?(String)
+          server = config[:debug].split(':').first
+          port = config[:debug].split(':').last if config[:debug][':']
+        else
+          server = 'localhost'
+        end
+        logger.warn "Debug option enabled. Connecting to #{server}!"
       end
 
-      smtp = Net::SMTP.new(server, nil)
+      smtp = Net::SMTP.new(server, port)
       smtp.enable_starttls_auto(context)
       smtp.read_timeout = config[:read_timeout] if config[:read_timeout]
       smtp.open_timeout = config[:open_timeout] if config[:open_timeout]
