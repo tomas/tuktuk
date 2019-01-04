@@ -193,6 +193,49 @@ config.action_mailer.tuktuk_settings = {
 }
 ```
 
+# Example SPK/DKIM/DMARC settings
+
+If you're sending email from yoursite.com, the SPF record should be set for the APEX/root host, and look like this:
+
+    v=spf1 ip4:[ipv4_address] ip6:[ipv6_address] mx a include:[other_host] ~all 
+
+For example:
+
+    v=spf1 ip4:12.34.56.78 ip6:2600:3c05::f07c:92ff:fe48:b2fd mx a include:mailgun.org ~all 
+
+This tells the receiving server to accept email sent from a) the addresses explicitly mentioned (`ip4` and `ip6`), 
+b) from the hosts mentioned in the `include` statements, as well as c) the hosts listed as `MX` and `A` records for that domain.
+
+As for DKIM, you should add two TXT records. The first is a simple, short one that goes under the `_domainkey` host, 
+and should contain the following:
+
+    t=y;o=~;
+
+Then, a second DKIM record should be placed under `[selector]._domainkey` (e.g. `mailer._domainkey`), and should look like this:
+
+    k=rsa; p=MIIBIBANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA[...]DAQAB (public key)
+    
+And finally, your DMARC record goes under the `_dmarc` host, and goes like this:
+
+    v=DMARC1; p=none; rua=mailto:postmaster@yoursite.com; ruf=mailto:postmaster@yoursite.com
+
+So, in summary:
+
+    (SPF)   @.yoursite.com                     --> v=spf1 ip4:[ipv4_address] ip6:[ipv6_address] mx a include:[other_host] ~all 
+    (DKIM1) _domainkey.yoursite.com            --> t=y;o=~;
+    (DKIM2) [selector]._domainkey.yoursite.com --> k=rsa; p=MIIBIBANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA[...]DAQAB (public key)
+    (DMARC) _dmarc.yoursite.com                --> v=DMARC1; p=none; rua=mailto:postmaster@yoursite.com; ruf=mailto:postmaster@yoursite.com
+
+Now, to check wether your records are OK, you can use the `dig` command like follows:
+
+    dig yoursite.com TXT +short # should output the SPF record, under the root domain
+    dig mailer._domainkey.yoursite.com TXT +short # should output the DKIM record containing the key
+    dig _domainkey.yoursite.com TXT +short # should output the other (short) DKIM 
+    dig _dmarc.yoursite.com TXT +short # should output the DMARC record
+    
+Remember you can query your DNS server directly with the `dig` command by adding `@name.server.com` 
+after the `dig` command (e.g. `dig @ns1.linode.com yoursite.com TXT`).
+
 # Contributions
 
 You're more than welcome. Send a pull request, including tests, and make sure you don't break anything. That's it.
