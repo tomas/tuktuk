@@ -223,7 +223,7 @@ So, in summary:
 
     (SPF)   @.yoursite.com                     --> v=spf1 ip4:[ipv4_address] ip6:[ipv6_address] mx a include:[other_host] ~all 
     (DKIM1) _domainkey.yoursite.com            --> t=y;o=~;
-    (DKIM2) [selector]._domainkey.yoursite.com --> k=rsa; p=MIIBIBANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA[...]DAQAB (public key)
+    (DKIM2) [selector]._domainkey.yoursite.com --> k=rsa; p=MIIBIBANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA[...]DAQAB
     (DMARC) _dmarc.yoursite.com                --> v=DMARC1; p=none; rua=mailto:postmaster@yoursite.com; ruf=mailto:postmaster@yoursite.com
 
 Now, to check wether your records are OK, you can use the `dig` command like follows:
