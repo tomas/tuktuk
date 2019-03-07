@@ -234,7 +234,7 @@ module Tuktuk
           begin
             resp = smtp.send_message(get_raw_mail(mail), get_from(mail), mail.to)
             smtp.send(:getok, 'RSET') if server['hotmail'] # fix for '503 Sender already specified'
-          rescue Net::SMTPFatalError => e # error code 5xx, except for 500, like: 550 Mailbox not found
+          rescue Net::SMTPFatalError, Net::SMTPServerBusy => e # error code 5xx, except for 500, like: 550 Mailbox not found
             resp = Bounce.type(e)
           end
           responses[mail] = resp
@@ -244,7 +244,7 @@ module Tuktuk
 
       responses
     rescue => e # SMTPServerBusy, SMTPSyntaxError, SMTPUnsupportedCommand, SMTPUnknownError (unexpected reply code)
-      logger.error "[SERVER ERROR: #{server}] #{e.message}"
+      logger.error "[SERVER ERROR: #{server}] #{e.class} -> #{e.message}"
       @last_error = e
       responses
     end
