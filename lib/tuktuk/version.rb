@@ -1,7 +1,7 @@
 module Tuktuk
   MAJOR = 0
-  MINOR = 6
-  PATCH = 5
+  MINOR = 7
+  PATCH = 0
 
   VERSION = [MAJOR, MINOR, PATCH].join('.')
 end
