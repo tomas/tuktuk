@@ -30,16 +30,19 @@ module Tuktuk
 
     def deliver(message, opts = {})
       # raise 'Please pass a valid message object.' unless message[:to]
+      bcc = opts.delete(:bcc) || []
+      bcc = [bcc] if bcc.is_a?(String)
+
       self.options = opts if opts.any?
       mail = Package.build(message)
-      response = lookup_and_deliver(mail)
+      response = lookup_and_deliver(mail, bcc)
       return response, mail
     end
 
     # same as deliver but raises error. used by ActionMailer
-    def deliver!(mail)
+    def deliver!(mail, opts = {})
       @logger = Rails.logger if defined?(Rails) and !config[:log_to]
-      resp, email = deliver(mail)
+      resp, email = deliver(mail, opts)
       if resp.is_a?(Exception)
         raise resp
       else
@@ -89,7 +92,9 @@ module Tuktuk
       hash = {}
       array.each_with_index do |message, i|
         mail = Package.build(message, i)
-        raise "Invalid destination count: #{mail.destinations.count}" if mail.destinations.count != 1
+        if mail.destinations.count != 1
+          raise ArgumentError, "Invalid destination count: #{mail.destinations.count}" 
+        end
 
         if to = mail.destinations.first and domain = get_domain(to)
           domain = domain.downcase
@@ -109,7 +114,7 @@ module Tuktuk
       servers.any? && servers
     end
 
-    def lookup_and_deliver(mail, attempt = 1)
+    def lookup_and_deliver(mail, bcc = [])
       if mail.destinations.empty?
         raise "No destinations found! You need to pass a :to field."
       end
@@ -127,9 +132,10 @@ module Tuktuk
         last_error = nil
         servers.each do |server|
           begin
-            response = send_now(mail, server, to)
+            response = send_now(mail, server, to, bcc)
             break
           rescue Exception => e # explicitly rescue Exception so we catch Timeout:Error's too
+            logger.error "Error: #{e}"
             last_error = e
           end
         end
@@ -210,14 +216,14 @@ module Tuktuk
       responses
     end
 
-    def send_now(mail, server, to)
+    def send_now(mail, server, to, bcc = [])
       logger.info "#{to} - Delivering email at #{server}..."
       from = get_from(mail)
 
       response = nil
       socket = init_connection(server)
       socket.start(get_helo_domain(from), nil, nil, nil) do |smtp|
-        response = smtp.send_message(get_raw_mail(mail), from, to)
+        response = smtp.send_message(get_raw_mail(mail), from, to, *bcc)
         logger.info "#{to} - [SENT] #{response.message.strip}"
       end
 

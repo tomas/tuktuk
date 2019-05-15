@@ -1,7 +1,141 @@
 require './lib/tuktuk/tuktuk'
 require 'rspec/mocks'
 
+def email(attrs = {})
+  { :to => "user#{rand(1000)}@domain.com",
+    :from => 'me@company.com',
+    :subject => 'Test email',
+    :body => 'Hello world.'
+  }.merge(attrs)
+end
+
 describe 'deliver' do
+
+  before(:each) do
+    @mock_smtp = double('Net::SMTP', enable_starttls_auto: true, :read_timeout= => true, :open_timeout= => true)
+    @mock_conn = double('SMTP Connection')
+    @mock_smtp.stub(:start).and_yield(@mock_conn)
+    @mock_resp = double('SMTP::Response', message: '250 OK')
+
+    Net::SMTP.stub(:new).and_return(@mock_smtp)
+  end
+
+  describe 'single recipient' do
+
+    describe 'when destination is valid (has MX servers)' do
+
+      before do
+        @servers = ['mx1.domain.com', 'mx2.domain.com', 'mx3.domain.com']
+        Tuktuk.stub(:smtp_servers_for_domain).and_return(@servers)
+      end
+
+      it 'sends message' do
+        msg = email
+        expect(@mock_conn).to receive(:send_message).with(String, msg[:from], msg[:to]).and_return(@mock_resp)
+        Tuktuk.deliver(msg)
+      end
+
+      describe 'and bcc is given' do
+
+        let(:bcc_email) { 'bcc@test.com' }
+
+        it 'includes it in destination list' do
+          msg = email
+          expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to], bcc_email).and_return(@mock_resp)
+          Tuktuk.deliver(msg, bcc: [bcc_email])
+        end
+
+        it 'also works if not passed as array' do
+          msg = email
+          expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to], bcc_email).and_return(@mock_resp)
+          Tuktuk.deliver(msg, bcc: bcc_email)
+        end
+
+      end
+
+    end
+
+  end
+
+  describe 'multiple recipients (string list)' do
+
+    describe 'when destination is valid (has MX servers)' do
+
+      before do
+        @servers = ['mx1.domain.com', 'mx2.domain.com', 'mx3.domain.com']
+        Tuktuk.stub(:smtp_servers_for_domain).and_return(@servers)
+      end
+
+      it 'sends message' do
+        msg = email(to: 'some@one.com, another@one.com')
+        expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to].split(', ').first).and_return(@mock_resp)
+        expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to].split(', ').last).and_return(@mock_resp)
+        Tuktuk.deliver(msg)
+      end
+
+      describe 'and bcc is given' do
+
+        let(:bcc_email) { 'bcc@test.com' }
+
+        it 'includes it in destination list' do
+          msg = email(to: 'some@one.com, another@one.com')
+          expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to].split(', ').first, bcc_email).and_return(@mock_resp)
+          expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to].split(', ').last, bcc_email).and_return(@mock_resp)
+          Tuktuk.deliver(msg, bcc: [bcc_email])
+        end
+
+        it 'also works if not passed as array' do
+          msg = email(to: 'some@one.com, another@one.com')
+          expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to].split(', ').first, bcc_email).and_return(@mock_resp)
+          expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to].split(', ').last, bcc_email).and_return(@mock_resp)
+          Tuktuk.deliver(msg, bcc: bcc_email)
+        end
+
+      end
+
+    end
+
+  end
+
+  describe 'multiple recipients (array)' do
+
+    describe 'when destination is valid (has MX servers)' do
+
+      before do
+        @servers = ['mx1.domain.com', 'mx2.domain.com', 'mx3.domain.com']
+        Tuktuk.stub(:smtp_servers_for_domain).and_return(@servers)
+      end
+
+      it 'sends message' do
+        msg = email(to: ['some@one.com', 'another@one.com'])
+        expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to].first).and_return(@mock_resp)
+        expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to].last).and_return(@mock_resp)
+        Tuktuk.deliver(msg)
+      end
+
+      describe 'and bcc is given' do
+
+        let(:bcc_email) { 'bcc@test.com' }
+
+        it 'includes it in destination list' do
+          msg = email(to: ['some@one.com', 'another@one.com'])
+          expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to].first, bcc_email).and_return(@mock_resp)
+          expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to].last, bcc_email).and_return(@mock_resp)
+          Tuktuk.deliver(msg, bcc: [bcc_email])
+        end
+
+        it 'also works if not passed as array' do
+          msg = email(to: ['some@one.com', 'another@one.com'])
+          expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to].first, bcc_email).and_return(@mock_resp)
+          expect(@mock_conn).to receive(:send_message).with(instance_of(String), msg[:from], msg[:to].last, bcc_email).and_return(@mock_resp)
+          Tuktuk.deliver(msg, bcc: bcc_email)
+        end
+
+      end
+
+    end
+
+  end
 
 end
 
@@ -17,7 +151,7 @@ describe 'deliver many' do
     it 'raises' do
       lambda do
         Tuktuk.deliver_many []
-      end.should raise_error
+      end.should raise_error(ArgumentError)
     end
 
   end
@@ -26,8 +160,8 @@ describe 'deliver many' do
 
     it 'raises' do
       lambda do
-        Tuktuk.deliver_many [ email, email(:to => 'one@user.com, two@user.com')]
-      end.should raise_error
+        Tuktuk.deliver_many [ email, email(:to => 'one@user.com, two@user.com') ]
+      end.should raise_error(ArgumentError)
     end
 
   end
@@ -89,7 +223,7 @@ describe 'deliver many' do
           end
 
           it 'starts by delivering to first one' do
-            Tuktuk.should_receive(:send_many_now).once.with('mx1.domain.com', [1]).and_return([[1,'ok']])
+            Tuktuk.should_receive(:send_many_now).once.with('mx1.domain.com', [1]).and_return([[1, 'ok']])
             Tuktuk.send(:lookup_and_deliver_by_domain, 'domain.com', [1])
           end
 
@@ -178,7 +312,7 @@ describe 'deliver many' do
             describe 'and other servers are down' do
 
               before do
-                # TODO: for some reason the :init_connection on line  138 is affecting this
+                # TODO: for some reason the :init_connection on line 138 is affecting this
                 # this test should pass when running on its own
                 # Tuktuk.should_receive(:init_connection).once.with('mx1.domain.com').and_return(@mock_smtp)
                 # Tuktuk.should_receive(:init_connection).once.with('mx2.domain.com').and_raise('Unable to connect.')
@@ -202,14 +336,6 @@ describe 'deliver many' do
 
     end
 
-  end
-
-  def email(attrs = {})
-    { :to => "user#{rand(1000)}@domain.com",
-      :from => 'me@company.com',
-      :subject => 'Test email',
-      :body => 'Hello world.'
-    }.merge(attrs)
   end
 
 end
