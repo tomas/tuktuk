@@ -93,7 +93,7 @@ module Tuktuk
       array.each_with_index do |message, i|
         mail = Package.build(message, i)
         if mail.destinations.count != 1
-          raise ArgumentError, "Invalid destination count: #{mail.destinations.count}" 
+          raise ArgumentError, "Invalid destination count: #{mail.destinations.count}"
         end
 
         if to = mail.destinations.first and domain = get_domain(to)
@@ -218,6 +218,7 @@ module Tuktuk
 
     def send_now(mail, server, to, bcc = [])
       logger.info "#{to} - Delivering email at #{server}..."
+      logger.info "Including these destinations: #{bcc.inspect}" if bcc && bcc.any?
       from = get_from(mail)
 
       response = nil
