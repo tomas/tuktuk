@@ -20,6 +20,16 @@ DEFAULTS = {
   :log_to       => nil # $stdout,
 }
 
+# overwrite Net::SMTP#quit since the connection might have been closed
+# before we got a chance to say goodbye. swallow the error in that case.
+class Net::SMTP
+  def quit
+    getok('QUIT')
+  rescue EOFError => e
+    # nil
+  end
+end
+
 module Tuktuk
 
   class << self
@@ -250,7 +260,7 @@ module Tuktuk
       end
 
       responses
-    rescue => e # SMTPServerBusy, SMTPSyntaxError, SMTPUnsupportedCommand, SMTPUnknownError (unexpected reply code)
+    rescue Exception => e # SMTPServerBusy, SMTPSyntaxError, SMTPUnsupportedCommand, SMTPUnknownError (unexpected reply code)
       logger.error "[SERVER ERROR: #{server}] #{e.class} -> #{e.message}"
       @last_error = e
       responses
