@@ -282,6 +282,7 @@ module Tuktuk
       context = OpenSSL::SSL::SSLContext.new
       context.verify_mode = config[:verify_ssl] ?
         OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE
+      context.set_params # Configures default certificate store
 
       port = nil
       if config[:debug]
